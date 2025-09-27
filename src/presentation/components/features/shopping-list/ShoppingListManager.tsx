@@ -1,26 +1,25 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft, Calendar, CalendarDays, Loader2 } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { useShoppingItems } from "../../hooks/use-shopping-items"
-import { useDragDrop } from "../../hooks/use-drag-drop"
-import { useToast } from "../../hooks/use-toast"
-import { AddItemForm } from "../forms/AddItemForm"
-import { ShoppingItemComponent } from "./ShoppingItemComponent"
-import { EmptyState, LoadingOverlay } from "@/components/loading-states"
-import { ErrorBoundary, ShoppingListErrorFallback } from "@/components/error-boundary"
+import { Button, Icon } from '../../atoms'
+import { ButtonGroup } from '../../molecules'
+import { AddItemForm, ItemList } from '../../organisms'
+import { PageHeader, PageLayout } from '../../templates'
+import { useShoppingItems } from '../../../hooks/use-shopping-items'
+import { useToast } from '../../../hooks/use-toast'
+import { LoadingOverlay } from '@/components/loading-states'
+import { ErrorBoundary, ShoppingListErrorFallback } from '@/components/error-boundary'
+import { cn } from '@/lib/utils'
+import { Calendar, CalendarDays } from 'lucide-react'
 
 interface ShoppingListManagerProps {
   onBack: () => void
 }
 
-const STATUS_LABELS = {
-  'este-mes': 'Este mes',
-  'proximo-mes': 'Próximo mes',
-}
+const STATUS_OPTIONS = [
+  { value: 'este-mes', label: 'Este mes', icon: <Icon icon={Calendar} size="sm" /> },
+  { value: 'proximo-mes', label: 'Próximo mes', icon: <Icon icon={CalendarDays} size="sm" /> },
+]
 
 export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
   const {
@@ -37,7 +36,6 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
 
   const { showSuccess, showError } = useToast()
   const [activeTab, setActiveTab] = useState<'este-mes' | 'proximo-mes'>('este-mes')
-  const dragDropProps = useDragDrop({ onReorderItems: reorderItems, activeTab })
 
   // Limpiar errores al cambiar de tab
   useEffect(() => {
@@ -87,9 +85,10 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
       const item = items.find(item => item.id === id)
       await moveItemToStatus(id, newStatus)
       if (item) {
+        const statusLabels = { 'este-mes': 'Este mes', 'proximo-mes': 'Próximo mes' }
         showSuccess(
           'Producto movido',
-          `${item.name.getValue()} movido a ${STATUS_LABELS[newStatus as keyof typeof STATUS_LABELS]}`
+          `${item.name.getValue()} movido a ${statusLabels[newStatus as keyof typeof statusLabels]}`
         )
       }
     } catch (error) {
@@ -97,130 +96,67 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
     }
   }
 
+  const handleReorder = async (status: string, sourceIndex: number, destIndex: number) => {
+    try {
+      await reorderItems(status, sourceIndex, destIndex)
+    } catch (error) {
+      showError('Error', 'No se pudo reordenar los productos')
+    }
+  }
+
   const currentItems = useMemo(() => {
     return getItemsByStatus(activeTab)
   }, [getItemsByStatus, activeTab])
 
-  const progressPercentage = currentItems.length > 0 
-    ? (currentItems.filter(item => item.completed).length / currentItems.length) * 100 
-    : 0
+  const progress = useMemo(() => {
+    const completed = currentItems.filter(item => item.completed).length
+    const total = currentItems.length
+    return { current: completed, total, label: 'completados' }
+  }, [currentItems])
+
+  const header = (
+    <PageHeader
+      title="Listas de Compras"
+      progress={progress.total > 0 ? progress : undefined}
+      showBackButton
+      onBack={onBack}
+    />
+  )
 
   return (
     <ErrorBoundary fallback={ShoppingListErrorFallback}>
-      <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="bg-card border-b border-border px-4 py-4 sticky top-0 z-10">
-          <div className="max-w-md mx-auto flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={onBack}
-              aria-label="Volver a la página principal"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <div className="flex-1">
-              <h1 className="text-lg font-semibold text-foreground">Listas de Compras</h1>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>
-                  {currentItems.filter(item => item.completed).length}/{currentItems.length} completados
-                </span>
-                {currentItems.length > 0 && (
-                  <div className="flex-1 bg-muted rounded-full h-2 max-w-24">
-                    <div 
-                      className="bg-primary h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${progressPercentage}%` }}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </header>
+      <PageLayout header={header}>
+        {/* Month Tabs */}
+        <div className="mb-6">
+          <ButtonGroup
+            options={STATUS_OPTIONS}
+            value={activeTab}
+            onChange={(value) => setActiveTab(value as 'este-mes' | 'proximo-mes')}
+            variant="outline"
+            size="sm"
+          />
+        </div>
 
-        <main className="max-w-md mx-auto px-4 py-6">
-          {/* Month Tabs */}
-          <div className="flex gap-2 mb-6" role="tablist">
-            <Button
-              variant={activeTab === 'este-mes' ? "default" : "outline"}
-              onClick={() => setActiveTab('este-mes')}
-              className="flex-1"
-              role="tab"
-              aria-selected={activeTab === 'este-mes'}
-            >
-              <Calendar className="w-4 h-4 mr-2" />
-              {STATUS_LABELS['este-mes']}
-            </Button>
-            <Button
-              variant={activeTab === 'proximo-mes' ? "default" : "outline"}
-              onClick={() => setActiveTab('proximo-mes')}
-              className="flex-1"
-              role="tab"
-              aria-selected={activeTab === 'proximo-mes'}
-            >
-              <CalendarDays className="w-4 h-4 mr-2" />
-              {STATUS_LABELS['proximo-mes']}
-            </Button>
-          </div>
-
-          {/* Add Item Form */}
+        {/* Add Item Form */}
+        <div className="mb-6">
           <AddItemForm
             onAddItem={handleAddItem}
             isLoading={loading}
-            className="mb-6"
           />
+        </div>
 
-          {/* Items List */}
-          <LoadingOverlay isLoading={loading && currentItems.length === 0}>
-            <DragDropContext {...dragDropProps}>
-              <Droppable droppableId="shopping-items">
-                {(provided, snapshot) => (
-                  <div 
-                    {...provided.droppableProps} 
-                    ref={provided.innerRef} 
-                    className={cn(
-                      "space-y-3 min-h-[200px]",
-                      snapshot.isDraggingOver && "bg-accent/5 rounded-lg p-2"
-                    )}
-                    role="list"
-                    aria-label={`Lista de productos para ${STATUS_LABELS[activeTab]}`}
-                  >
-                    {currentItems.length === 0 ? (
-                      <EmptyState
-                        title={`No hay productos para ${STATUS_LABELS[activeTab]}`}
-                        description="Agrega algunos productos usando el formulario de arriba"
-                      />
-                    ) : (
-                      currentItems.map((item, index) => (
-                        <Draggable key={item.id} draggableId={item.id} index={index}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                            >
-                              <ShoppingItemComponent
-                                item={item}
-                                index={index}
-                                activeTab={activeTab}
-                                onToggleCompleted={handleToggleCompleted}
-                                onMoveToStatus={handleMoveToStatus}
-                                onDelete={handleDeleteItem}
-                                isDragging={snapshot.isDragging}
-                              />
-                            </div>
-                          )}
-                        </Draggable>
-                      ))
-                    )}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
-          </LoadingOverlay>
-        </main>
-      </div>
+        {/* Items List */}
+        <LoadingOverlay isLoading={loading && currentItems.length === 0}>
+          <ItemList
+            items={currentItems}
+            activeTab={activeTab}
+            onToggleCompleted={handleToggleCompleted}
+            onMoveToStatus={handleMoveToStatus}
+            onDelete={handleDeleteItem}
+            onReorder={handleReorder}
+          />
+        </LoadingOverlay>
+      </PageLayout>
     </ErrorBoundary>
   )
 }

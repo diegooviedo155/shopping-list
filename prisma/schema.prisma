@@ -1,0 +1,40 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model ShoppingItem {
+  id          String   @id @default(cuid())
+  name        String
+  category    Category
+  status      ItemStatus
+  completed   Boolean  @default(false)
+  orderIndex  Int      @map("order_index")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("shopping_items")
+}
+
+enum Category {
+  supermercado
+  verduleria
+  carniceria
+
+  @@map("category")
+}
+
+enum ItemStatus {
+  este_mes    @map("este-mes")
+  proximo_mes @map("proximo-mes")
+
+  @@map("item_status")
+}

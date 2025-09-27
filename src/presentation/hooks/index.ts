@@ -1,3 +1,6 @@
 export { useShoppingItems } from './use-shopping-items'
 export { useDragDrop } from './use-drag-drop'
 export { useToast } from './use-toast'
+export { useFramerMotion } from './use-framer-motion'
+export { usePageTransitions } from './use-page-transitions'
+export { useDebounce, useDebouncedCallback } from './use-debounce'

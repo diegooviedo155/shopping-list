@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
+import { motion, AnimatePresence } from 'framer-motion'
 import { Button, Icon } from '../../atoms'
 import { ButtonGroup } from '../../molecules'
 import { AddItemForm, ItemList } from '../../organisms'
 import { PageHeader, PageLayout } from '../../templates'
-import { useShoppingItems } from '../../../hooks/use-shopping-items'
+import { useShoppingItems, usePageTransitions } from '../../../hooks'
 import { useToast } from '../../../hooks/use-toast'
 import { LoadingOverlay } from '@/components/loading-states'
 import { ErrorBoundary, ShoppingListErrorFallback } from '@/components/error-boundary'
@@ -35,6 +36,7 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
   } = useShoppingItems()
 
   const { showSuccess, showError } = useToast()
+  const { StaggerContainer, StaggerItem } = usePageTransitions()
   const [activeTab, setActiveTab] = useState<'este-mes' | 'proximo-mes'>('este-mes')
 
   // Limpiar errores al cambiar de tab
@@ -126,36 +128,60 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
   return (
     <ErrorBoundary fallback={ShoppingListErrorFallback}>
       <PageLayout header={header}>
-        {/* Month Tabs */}
-        <div className="mb-6">
-          <ButtonGroup
-            options={STATUS_OPTIONS}
-            value={activeTab}
-            onChange={(value) => setActiveTab(value as 'este-mes' | 'proximo-mes')}
-            variant="outline"
-            size="sm"
-          />
-        </div>
+        <StaggerContainer>
+          {/* Month Tabs */}
+          <StaggerItem>
+            <motion.div 
+              className="mb-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <ButtonGroup
+                options={STATUS_OPTIONS}
+                value={activeTab}
+                onChange={(value) => setActiveTab(value as 'este-mes' | 'proximo-mes')}
+                variant="outline"
+                size="sm"
+              />
+            </motion.div>
+          </StaggerItem>
 
-        {/* Add Item Form */}
-        <div className="mb-6">
-          <AddItemForm
-            onAddItem={handleAddItem}
-            isLoading={loading}
-          />
-        </div>
+          {/* Add Item Form */}
+          <StaggerItem>
+            <motion.div 
+              className="mb-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <AddItemForm
+                onAddItem={handleAddItem}
+                isLoading={loading}
+              />
+            </motion.div>
+          </StaggerItem>
 
-        {/* Items List */}
-        <LoadingOverlay isLoading={loading && currentItems.length === 0}>
-          <ItemList
-            items={currentItems}
-            activeTab={activeTab}
-            onToggleCompleted={handleToggleCompleted}
-            onMoveToStatus={handleMoveToStatus}
-            onDelete={handleDeleteItem}
-            onReorder={handleReorder}
-          />
-        </LoadingOverlay>
+          {/* Items List */}
+          <StaggerItem>
+            <LoadingOverlay isLoading={loading && currentItems.length === 0}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <ItemList
+                  items={currentItems}
+                  activeTab={activeTab}
+                  onToggleCompleted={handleToggleCompleted}
+                  onMoveToStatus={handleMoveToStatus}
+                  onDelete={handleDeleteItem}
+                  onReorder={handleReorder}
+                />
+              </motion.div>
+            </LoadingOverlay>
+          </StaggerItem>
+        </StaggerContainer>
       </PageLayout>
     </ErrorBoundary>
   )

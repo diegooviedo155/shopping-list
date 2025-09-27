@@ -100,13 +100,40 @@ export function useShoppingItems(): UseShoppingItemsReturn {
   const reorderItems = useCallback(async (status: string, sourceIndex: number, destIndex: number) => {
     try {
       setError(null)
-      await shoppingItemService.reorderItems({ status, sourceIndex, destIndex })
-      await fetchItems() // Refetch to get updated order
+      
+      // Guardar el estado anterior para rollback
+      const previousItems = [...items]
+      
+      // Optimistic update inmediato - actualizar UI primero
+      setItems((prev) => {
+        const currentItems = prev
+          .filter((item) => item.status.getValue() === status)
+          .sort((a, b) => a.orderIndex - b.orderIndex)
+
+        const [reorderedItem] = currentItems.splice(sourceIndex, 1)
+        currentItems.splice(destIndex, 0, reorderedItem)
+
+        const updatedItems = currentItems.map((item, index) =>
+          ShoppingItem.create({ ...item.toPrimitives(), orderIndex: index, updatedAt: new Date() })
+        )
+
+        const otherItems = prev.filter((item) => item.status.getValue() !== status)
+        return [...otherItems, ...updatedItems]
+      })
+
+      // Actualizar backend en background sin bloquear UI
+      // No esperar la respuesta - actualización optimista
+      shoppingItemService.reorderItems({ status, sourceIndex, destIndex }).catch((backendError) => {
+        // Si falla el backend, revertir el estado optimista
+        setItems(previousItems)
+        setError(backendError instanceof Error ? backendError.message : 'Failed to reorder items')
+        console.error('Error reordering items:', backendError)
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to reorder items')
       throw err
     }
-  }, [shoppingItemService, fetchItems])
+  }, [shoppingItemService, items])
 
   const getItemsByStatus = useCallback((status: string) => {
     return items.filter(item => item.status.getValue() === status)

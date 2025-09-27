@@ -1,8 +1,8 @@
 import React from 'react'
-import { Badge as RadixBadge } from '@/components/ui/badge'
+import { Badge as ShadcnBadge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
-export interface BadgeProps extends React.ComponentProps<typeof RadixBadge> {
+export interface BadgeProps extends React.ComponentProps<typeof ShadcnBadge> {
   variant?: 'default' | 'secondary' | 'destructive' | 'outline' | 'custom'
   color?: string
   backgroundColor?: string
@@ -27,7 +27,7 @@ export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
     } : style
 
     return (
-      <RadixBadge
+      <ShadcnBadge
         ref={ref}
         variant={variant === 'custom' ? 'secondary' : variant}
         className={cn(

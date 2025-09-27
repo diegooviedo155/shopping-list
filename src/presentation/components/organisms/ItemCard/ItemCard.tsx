@@ -1,6 +1,6 @@
 import React from 'react'
-import { Card } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
+import { motion } from 'framer-motion'
+import { Card, Checkbox } from '../../atoms'
 import { Button, Badge, Icon } from '../../atoms'
 import { StatusIndicator } from '../../molecules'
 import { cn } from '@/lib/utils'
@@ -65,18 +65,31 @@ export const ItemCard = React.forwardRef<HTMLDivElement, ItemCardProps>(
       onDelete?.(item.id)
     }
 
+
     return (
-      <Card
+      <motion.div
         ref={ref}
-        className={cn(
-          'p-4 transition-all duration-200',
-          isDragging && 'shadow-lg rotate-2',
-          item.completed && 'opacity-60',
-          className
-        )}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
+        layout
+        transition={{
+          type: 'spring',
+          stiffness: 600,
+          damping: 35,
+          mass: 0.5
+        }}
+        style={{
+          transform: 'none'
+        }}
       >
+        <Card
+          className={cn(
+            'p-4 transition-all duration-200',
+            isDragging && 'shadow-lg scale-105',
+            item.completed && 'opacity-60',
+            className
+          )}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+        >
         <div className="flex items-center gap-3">
           {showDragHandle && (
             <div className="text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing">
@@ -144,7 +157,8 @@ export const ItemCard = React.forwardRef<HTMLDivElement, ItemCardProps>(
             )}
           </div>
         </div>
-      </Card>
+        </Card>
+      </motion.div>
     )
   }
 )

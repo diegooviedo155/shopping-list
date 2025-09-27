@@ -1,13 +1,14 @@
 import React from 'react'
-import { Input as RadixInput } from '@/components/ui/input'
+import { Input as ShadcnInput } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
-export interface InputProps extends React.ComponentProps<typeof RadixInput> {
+export interface InputProps extends React.ComponentProps<typeof ShadcnInput> {
   error?: string
   label?: string
   helperText?: string
   leftIcon?: React.ReactNode
   rightIcon?: React.ReactNode
+  required?: boolean
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
@@ -19,6 +20,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     rightIcon, 
     className,
     id,
+    required = false,
     ...props 
   }, ref) => {
     const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`
@@ -31,6 +33,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             className="text-sm font-medium text-foreground"
           >
             {label}
+            {required && <span className="text-destructive ml-1">*</span>}
           </label>
         )}
         
@@ -41,7 +44,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             </div>
           )}
           
-          <RadixInput
+          <ShadcnInput
             ref={ref}
             id={inputId}
             className={cn(

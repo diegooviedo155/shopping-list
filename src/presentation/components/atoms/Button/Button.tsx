@@ -1,13 +1,15 @@
 import React from 'react'
-import { Button as RadixButton } from '@/components/ui/button'
+import { Button as ShadcnButton } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 
-export interface ButtonProps extends React.ComponentProps<typeof RadixButton> {
+export interface ButtonProps extends React.ComponentProps<typeof ShadcnButton> {
   loading?: boolean
   leftIcon?: React.ReactNode
   rightIcon?: React.ReactNode
   fullWidth?: boolean
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
+  size?: 'default' | 'sm' | 'lg' | 'icon'
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -19,13 +21,17 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     fullWidth = false,
     className,
     disabled,
+    variant = 'default',
+    size = 'default',
     ...props 
   }, ref) => {
     const isDisabled = disabled || loading
 
     return (
-      <RadixButton
+      <ShadcnButton
         ref={ref}
+        variant={variant}
+        size={size}
         className={cn(
           fullWidth && 'w-full',
           className
@@ -37,7 +43,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {!loading && leftIcon && <span className="mr-2">{leftIcon}</span>}
         {children}
         {!loading && rightIcon && <span className="ml-2">{rightIcon}</span>}
-      </RadixButton>
+      </ShadcnButton>
     )
   }
 )

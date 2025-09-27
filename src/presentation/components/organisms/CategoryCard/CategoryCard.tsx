@@ -1,6 +1,5 @@
 import React from 'react'
-import { Card } from '@/components/ui/card'
-import { Button, Icon } from '../../atoms'
+import { Card, Icon } from '../../atoms'
 import { ProgressBar } from '../../molecules'
 import { cn } from '@/lib/utils'
 import { ShoppingCart, Loader2 } from 'lucide-react'

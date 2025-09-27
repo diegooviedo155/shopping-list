@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { validateCreateItem } from "@/lib/validations/shopping"
+import { toDatabaseStatus, toFrontendStatus } from "@/lib/utils/status-conversion"
 
 export async function GET() {
   try {
@@ -19,8 +20,11 @@ export async function GET() {
 
     console.log(`Found ${items.length} items in the database`)
     
-    // Si no hay items, devolver un array vacío
-    const result = Array.isArray(items) ? items : []
+    // Convert database status format (este_mes) to frontend format (este-mes)
+    const result = items.map(item => ({
+      ...item,
+      status: toFrontendStatus(item.status)
+    }))
     
     return NextResponse.json(result)
   } catch (error) {
@@ -56,9 +60,12 @@ export async function POST(request: NextRequest) {
 
     const { name, category, status } = validation.data
 
+    // Convert frontend status format (este-mes) to database format (este_mes)
+    const dbStatus = toDatabaseStatus(status)
+
     // Get the highest order index for the status
     const maxOrderItem = await prisma.shoppingItem.findFirst({
-      where: { status },
+      where: { status: dbStatus },
       orderBy: { orderIndex: "desc" },
     })
 
@@ -68,13 +75,19 @@ export async function POST(request: NextRequest) {
       data: {
         name: name.trim(),
         category,
-        status,
+        status: dbStatus,
         completed: false,
         orderIndex,
       },
     })
 
-    return NextResponse.json(item)
+    // Convert database status format (este_mes) to frontend format (este-mes)
+    const result = {
+      ...item,
+      status: toFrontendStatus(item.status)
+    }
+
+    return NextResponse.json(result)
   } catch (error) {
     console.error("Error creating shopping item:", error)
     return NextResponse.json({ 

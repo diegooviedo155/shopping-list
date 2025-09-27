@@ -4,6 +4,7 @@ import { ItemName } from '../../../domain/value-objects/ItemName'
 import { ItemStatus } from '../../../domain/value-objects/ItemStatus'
 import { Category } from '../../../domain/value-objects/Category'
 import { IShoppingItemRepository, CreateItemData, UpdateItemData, ShoppingItemFilters } from '../../../domain/repositories/IShoppingItemRepository'
+import { toDatabaseStatus, toFrontendStatus } from '../../../../lib/utils/status-conversion'
 
 export class PrismaShoppingItemRepository implements IShoppingItemRepository {
   constructor(private prisma: PrismaClient) {}
@@ -51,8 +52,11 @@ export class PrismaShoppingItemRepository implements IShoppingItemRepository {
   }
 
   async findByStatus(status: ItemStatus): Promise<ShoppingItem[]> {
+    // Convert frontend status format (este-mes) to database format (este_mes)
+    const dbStatus = toDatabaseStatus(status.getValue())
+    
     const items = await this.prisma.shoppingItem.findMany({
-      where: { status: status.getValue() },
+      where: { status: dbStatus },
       orderBy: { orderIndex: 'asc' },
     })
 
@@ -61,12 +65,15 @@ export class PrismaShoppingItemRepository implements IShoppingItemRepository {
 
   async create(data: CreateItemData): Promise<ShoppingItem> {
     const orderIndex = await this.getNextOrderIndex(new ItemStatus(data.status))
+    
+    // Convert frontend status format (este-mes) to database format (este_mes)
+    const dbStatus = toDatabaseStatus(data.status)
 
     const item = await this.prisma.shoppingItem.create({
       data: {
         name: data.name,
         category: data.category,
-        status: data.status,
+        status: dbStatus,
         completed: false,
         orderIndex,
       },
@@ -76,15 +83,21 @@ export class PrismaShoppingItemRepository implements IShoppingItemRepository {
   }
 
   async update(id: string, data: UpdateItemData): Promise<ShoppingItem> {
+    const updateData: any = {
+      ...(data.name && { name: data.name }),
+      ...(data.category && { category: data.category }),
+      ...(data.completed !== undefined && { completed: data.completed }),
+      ...(data.orderIndex !== undefined && { orderIndex: data.orderIndex }),
+    }
+
+    // Convert frontend status format (este-mes) to database format (este_mes) if status is provided
+    if (data.status) {
+      updateData.status = toDatabaseStatus(data.status)
+    }
+
     const item = await this.prisma.shoppingItem.update({
       where: { id },
-      data: {
-        ...(data.name && { name: data.name }),
-        ...(data.category && { category: data.category }),
-        ...(data.status && { status: data.status }),
-        ...(data.completed !== undefined && { completed: data.completed }),
-        ...(data.orderIndex !== undefined && { orderIndex: data.orderIndex }),
-      },
+      data: updateData,
     })
 
     return this.mapToEntity(item)
@@ -97,8 +110,11 @@ export class PrismaShoppingItemRepository implements IShoppingItemRepository {
   }
 
   async reorderItems(status: ItemStatus, sourceIndex: number, destIndex: number): Promise<void> {
+    // Convert frontend status format (este-mes) to database format (este_mes)
+    const dbStatus = toDatabaseStatus(status.getValue())
+    
     const items = await this.prisma.shoppingItem.findMany({
-      where: { status: status.getValue() },
+      where: { status: dbStatus },
       orderBy: { orderIndex: 'asc' },
     })
 
@@ -122,8 +138,11 @@ export class PrismaShoppingItemRepository implements IShoppingItemRepository {
   }
 
   async getNextOrderIndex(status: ItemStatus): Promise<number> {
+    // Convert frontend status format (este-mes) to database format (este_mes)
+    const dbStatus = toDatabaseStatus(status.getValue())
+    
     const maxItem = await this.prisma.shoppingItem.findFirst({
-      where: { status: status.getValue() },
+      where: { status: dbStatus },
       orderBy: { orderIndex: 'desc' },
     })
 
@@ -131,11 +150,14 @@ export class PrismaShoppingItemRepository implements IShoppingItemRepository {
   }
 
   private mapToEntity(item: any): ShoppingItem {
+    // Convert database status format (este_mes) to frontend format (este-mes)
+    const frontendStatus = toFrontendStatus(item.status)
+    
     return ShoppingItem.fromPersistence({
       id: item.id,
       name: new ItemName(item.name),
       category: new Category(item.category),
-      status: new ItemStatus(item.status),
+      status: new ItemStatus(frontendStatus),
       completed: item.completed,
       orderIndex: item.orderIndex,
       createdAt: new Date(item.createdAt),

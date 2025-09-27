@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { validateUpdateItem } from "@/lib/validations/shopping"
+import { toDatabaseStatus, toFrontendStatus } from "@/lib/utils/status-conversion"
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -23,8 +24,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     
     // Convert status from 'este-mes' to 'este_mes' if needed
     if (updateData.status) {
-      const normalizedStatus = updateData.status.replace(/-/g, '_')
-      updateData.status = normalizedStatus as any
+      updateData.status = toDatabaseStatus(updateData.status) as any
     }
     
     console.log('Updating item with data:', updateData)
@@ -34,7 +34,13 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       data: updateData,
     })
     
-    return NextResponse.json(item)
+    // Convert database status format (este_mes) to frontend format (este-mes)
+    const result = {
+      ...item,
+      status: toFrontendStatus(item.status)
+    }
+    
+    return NextResponse.json(result)
   } catch (error) {
     console.error("Error updating shopping item:", error)
     return NextResponse.json({ 

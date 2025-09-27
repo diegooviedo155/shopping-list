@@ -48,7 +48,7 @@ export function useFramerMotion<T>({
         setIsUpdating(false)
       }
     }
-  }, [onReorder, items, optimisticUpdate])
+  }, [onReorder, optimisticUpdate])
 
   const ReorderGroup = useCallback(({ children, className, ...props }: any) => (
     <Reorder.Group

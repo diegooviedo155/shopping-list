@@ -26,7 +26,7 @@ export function HomePage() {
       showError('Error', 'No se pudieron cargar los productos')
       clearError()
     }
-  }, [error, showError, clearError])
+  }, [error, clearError])
 
   // Manejar el botón de retroceso del navegador
   useEffect(() => {

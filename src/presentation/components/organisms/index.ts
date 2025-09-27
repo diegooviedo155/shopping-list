@@ -1,6 +1,9 @@
 export { ItemCard } from './ItemCard'
 export type { ItemCardProps } from './ItemCard'
 
+export { SwipeableItemCard } from './SwipeableItemCard'
+export type { SwipeableItemCardProps } from './SwipeableItemCard'
+
 export { CategoryCard } from './CategoryCard'
 export type { CategoryCardProps } from './CategoryCard'
 

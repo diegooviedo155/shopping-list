@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button, Icon } from '../../atoms'
-import { ItemCard } from '../../organisms'
+import { SwipeableItemCard } from '../../organisms'
 import { PageHeader, PageLayout } from '../../templates'
 import { useFramerMotion, usePageTransitions } from '../../../hooks'
 import { useShoppingItems } from '../../../hooks/use-shopping-items'
@@ -42,7 +42,7 @@ export function CategoryView({ categoryId, categoryName, onBack }: CategoryViewP
     if (error) {
       showError('Error', 'No se pudieron cargar los productos')
     }
-  }, [error, showError])
+  }, [error])
 
   const handleReorder = async (newItems: ShoppingItem[]) => {
     setCategoryItems(newItems)
@@ -143,13 +143,11 @@ export function CategoryView({ categoryId, categoryName, onBack }: CategoryViewP
                       className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
                     >
                       <StaggerItem>
-                        <ItemCard
+                        <SwipeableItemCard
                           item={item}
                           isDragging={isDragging}
                           showDragHandle={true}
                           showStatus={true}
-                          showMoveButton={true}
-                          showDeleteButton={true}
                           onToggleCompleted={handleToggleCompleted}
                           onMoveToStatus={handleMoveToStatus}
                           onDelete={handleDeleteItem}

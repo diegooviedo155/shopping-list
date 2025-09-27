@@ -4,7 +4,7 @@ import { ItemName } from '../../../domain/value-objects/ItemName'
 import { ItemStatus } from '../../../domain/value-objects/ItemStatus'
 import { Category } from '../../../domain/value-objects/Category'
 import { IShoppingItemRepository, CreateItemData, UpdateItemData, ShoppingItemFilters } from '../../../domain/repositories/IShoppingItemRepository'
-import { toDatabaseStatus, toFrontendStatus } from '../../../../lib/utils/status-conversion'
+import { toDatabaseStatus, toFrontendStatus } from '@/lib/utils/status-conversion'
 
 export class PrismaShoppingItemRepository implements IShoppingItemRepository {
   constructor(private prisma: PrismaClient) {}

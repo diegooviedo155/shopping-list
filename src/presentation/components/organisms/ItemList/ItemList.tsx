@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { ItemCard } from '../ItemCard'
+import { SwipeableItemCard } from '../SwipeableItemCard'
 import { LoadingIndicator } from '../../atoms'
 import { UpdateStatus } from '../../molecules'
 import { EmptyState } from '@/components/loading-states'
@@ -101,7 +101,7 @@ export const ItemList = React.forwardRef<HTMLDivElement, ItemListProps>(
                   value={item}
                   className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
                 >
-                  <ItemCard
+                  <SwipeableItemCard
                     item={item}
                     isDragging={isDragging}
                     showDragHandle={!!onReorder}

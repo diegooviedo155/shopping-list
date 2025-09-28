@@ -6,13 +6,13 @@ import { Button, Icon } from '../../atoms'
 import { SwipeableItemCard } from '../../organisms'
 import { PageHeader, PageLayout } from '../../templates'
 import { useFramerMotion, usePageTransitions } from '../../../hooks'
-import { useShoppingItems } from '../../../hooks/use-shopping-items-simple'
+import { useShoppingItemsSimple } from '../../../hooks'
 import { useToast } from '../../../hooks/use-toast'
 import { LoadingOverlay } from '@/components/loading-states'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { cn } from '@/lib/utils'
 import { ArrowLeft, ShoppingCart } from 'lucide-react'
-import { ShoppingItem } from '../../../../core/domain/entities/ShoppingItem'
+import { ShoppingItem } from '../../../src/core/domain/entities/ShoppingItem'
 
 interface CategoryViewProps {
   categoryId: string
@@ -27,7 +27,7 @@ const CATEGORY_CONFIG = {
 }
 
 export function CategoryView({ categoryId, categoryName, onBack }: CategoryViewProps) {
-  const { items, loading, error, getItemsByCategory, toggleItemCompleted, deleteItem, moveItemToStatus } = useShoppingItems()
+  const { items, loading, error, getItemsByCategory, toggleItemCompleted, deleteItem, moveItemToStatus } = useShoppingItemsSimple()
   const { showError, showSuccess } = useToast()
   const { StaggerContainer, StaggerItem } = usePageTransitions()
 

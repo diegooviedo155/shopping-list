@@ -7,7 +7,7 @@ import { ButtonGroup } from '../../molecules'
 import { AddItemForm, ItemList } from '../../organisms'
 import { PageHeader, PageLayout } from '../../templates'
 import { usePageTransitions } from '../../../hooks'
-import { useShoppingItems } from '../../../hooks/use-shopping-items-simple'
+import { useShoppingItemsSimple } from '../../../hooks'
 import { useToast } from '../../../hooks/use-toast'
 import { LoadingOverlay } from '@/components/loading-states'
 import { ErrorBoundary, ShoppingListErrorFallback } from '@/components/error-boundary'
@@ -34,7 +34,7 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
     moveItemToStatus,
     reorderItems,
     getItemsByStatus,
-  } = useShoppingItems()
+  } = useShoppingItemsSimple()
 
   const { showSuccess, showError } = useToast()
   const { StaggerContainer, StaggerItem } = usePageTransitions()

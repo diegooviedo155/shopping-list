@@ -7,7 +7,7 @@ import { Button, Icon } from '../../atoms'
 import { CategoryCard } from '../../organisms'
 import { PageLayout } from '../../templates'
 import { usePageTransitions } from '../../../hooks'
-import { useShoppingItems } from '../../../hooks/use-shopping-items-simple'
+import { useShoppingItemsSimple } from '../../../hooks'
 import { useToast } from '../../../hooks/use-toast'
 import { LoadingOverlay } from '@/components/loading-states'
 import { ErrorBoundary } from '@/components/error-boundary'
@@ -37,7 +37,7 @@ const CATEGORIES = [
 export function HomePage() {
   const router = useRouter()
   const [viewState, setViewState] = useState<ViewState>("home")
-  const { items, loading, error, getItemsByCategory } = useShoppingItems()
+  const { items, loading, error, getItemsByCategory } = useShoppingItemsSimple()
   const { showError } = useToast()
   const { StaggerContainer, StaggerItem } = usePageTransitions()
 

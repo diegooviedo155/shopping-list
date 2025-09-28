@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect, useCallback } from 'react'
-import { ShoppingItem } from '../../core/domain/entities/ShoppingItem'
-import { ItemName } from '../../core/domain/value-objects/ItemName'
-import { ItemStatus } from '../../core/domain/value-objects/ItemStatus'
-import { Category } from '../../core/domain/value-objects/Category'
+import { ShoppingItem } from '../src/core/domain/entities/ShoppingItem'
+import { ItemName } from '../src/core/domain/value-objects/ItemName'
+import { ItemStatus } from '../src/core/domain/value-objects/ItemStatus'
+import { Category } from '../src/core/domain/value-objects/Category'
 
 interface UseShoppingItemsReturn {
   items: ShoppingItem[]

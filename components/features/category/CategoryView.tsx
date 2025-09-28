@@ -12,7 +12,7 @@ import { LoadingOverlay } from '@/components/loading-states'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { cn } from '@/lib/utils'
 import { ArrowLeft, ShoppingCart } from 'lucide-react'
-import { ShoppingItem } from '../../../src/core/domain/entities/ShoppingItem'
+import { ShoppingItem } from '../../../lib/domain/entities/ShoppingItem'
 
 interface CategoryViewProps {
   categoryId: string

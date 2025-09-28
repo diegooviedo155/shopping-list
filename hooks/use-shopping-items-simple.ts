@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect, useCallback } from 'react'
-import { ShoppingItem } from '../src/core/domain/entities/ShoppingItem'
-import { ItemName } from '../src/core/domain/value-objects/ItemName'
-import { ItemStatus } from '../src/core/domain/value-objects/ItemStatus'
-import { Category } from '../src/core/domain/value-objects/Category'
+import { ShoppingItem } from '../lib/domain/entities/ShoppingItem'
+import { ItemName } from '../lib/domain/value-objects/ItemName'
+import { ItemStatus } from '../lib/domain/value-objects/ItemStatus'
+import { Category } from '../lib/domain/value-objects/Category'
 
 interface UseShoppingItemsReturn {
   items: ShoppingItem[]
@@ -233,11 +233,11 @@ export function useShoppingItems(): UseShoppingItemsReturn {
   }, [fetchItems])
 
   const getItemsByStatus = useCallback((status: string) => {
-    return items.filter(item => item.status.getValue() === status)
+    return items?.filter(item => item.status.getValue() === status) || []
   }, [items])
 
   const getItemsByCategory = useCallback((category: string) => {
-    return items.filter(item => item.category.getValue() === category)
+    return items?.filter(item => item.category.getValue() === category) || []
   }, [items])
 
   useEffect(() => {

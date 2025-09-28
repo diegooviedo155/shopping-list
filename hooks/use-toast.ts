@@ -1,6 +1,6 @@
 "use client"
 
-import { useToast as useRadixToast } from "@/hooks/use-toast"
+import { useToast as useRadixToast } from "@/components/ui/use-toast"
 
 export function useToast() {
   const { toast } = useRadixToast()

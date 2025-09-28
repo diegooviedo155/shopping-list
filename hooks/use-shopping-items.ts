@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect, useCallback } from 'react'
-import { DIContainer } from '../../core/infrastructure/container/DIContainer'
-import { ShoppingItem } from '../../core/domain/entities/ShoppingItem'
-import { ItemStatus } from '../../core/domain/value-objects/ItemStatus'
-import { Category } from '../../core/domain/value-objects/Category'
+import { DIContainer } from '../lib/infrastructure/container/DIContainer'
+import { ShoppingItem } from '../lib/domain/entities/ShoppingItem'
+import { ItemStatus } from '../lib/domain/value-objects/ItemStatus'
+import { Category } from '../lib/domain/value-objects/Category'
 
 interface UseShoppingItemsReturn {
   items: ShoppingItem[]

@@ -114,7 +114,7 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
   const progress = useMemo(() => {
     const completed = currentItems.filter(item => item.completed).length
     const total = currentItems.length
-    return { current: completed, total, label: 'completados' }
+    return { current: completed, total }
   }, [currentItems])
 
   const header = (

@@ -2,6 +2,7 @@ export { ItemCard } from './ItemCard'
 export type { ItemCardProps } from './ItemCard'
 
 export { SwipeableItemCard } from './SwipeableItemCard'
+export { IonicSwipeItem } from './IonicSwipeItem'
 export type { SwipeableItemCardProps } from './SwipeableItemCard'
 
 export { CategoryCard } from './CategoryCard'

@@ -17,4 +17,5 @@ export { Sheet } from './Sheet'
 export type { SheetProps } from './Sheet'
 
 export { UpdateStatus } from './UpdateStatus'
+export { PendingChangesIndicator } from './PendingChangesIndicator'
 export type { UpdateStatusProps } from './UpdateStatus'

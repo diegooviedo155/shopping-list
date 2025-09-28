@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { SwipeableItemCard } from '../SwipeableItemCard'
+import { IonicSwipeItem } from '../IonicSwipeItem'
 import { LoadingIndicator } from '../../atoms'
-import { UpdateStatus } from '../../molecules'
+import { UpdateStatus, PendingChangesIndicator } from '../../molecules'
 import { EmptyState } from '@/components/loading-states'
 import { useFramerMotion } from '../../../hooks/use-framer-motion'
 import { cn } from '@/lib/utils'
@@ -29,20 +29,10 @@ export const ItemList = React.forwardRef<HTMLDivElement, ItemListProps>(
     onReorder,
     className 
   }, ref) => {
-    const [localItems, setLocalItems] = useState<ShoppingItem[]>(items)
     const [updateStatus, setUpdateStatus] = useState<'idle' | 'updating' | 'success' | 'error'>('idle')
-
-    // Sincronizar items locales con props cuando cambien
-    useEffect(() => {
-      setLocalItems(items)
-    }, [items])
 
     const handleReorder = useCallback(async (newItems: ShoppingItem[]) => {
       if (!onReorder) return
-      
-      // Actualizar estado local inmediatamente - UI se actualiza al instante
-      setLocalItems(newItems)
-      setUpdateStatus('updating')
       
       // Encontrar el índice de los elementos que cambiaron
       const changedItems = newItems.map((item, newIndex) => {
@@ -50,31 +40,29 @@ export const ItemList = React.forwardRef<HTMLDivElement, ItemListProps>(
         return { item, oldIndex, newIndex }
       }).filter(({ oldIndex, newIndex }) => oldIndex !== newIndex)
 
-      // Si hay cambios, llamar al callback de reorder en background
+      // Si hay cambios, llamar al callback de reorder
       if (changedItems.length > 0) {
         const firstChange = changedItems[0]
-        // No esperar la respuesta - actualización optimista
-        onReorder(activeTab, firstChange.oldIndex, firstChange.newIndex)
-          .then(() => {
-            setUpdateStatus('success')
-            setTimeout(() => setUpdateStatus('idle'), 2000)
-          })
-          .catch((error) => {
-            // En caso de error, revertir al estado anterior
-            setLocalItems(items)
-            setUpdateStatus('error')
-            setTimeout(() => setUpdateStatus('idle'), 3000)
-            console.error('Error reordering items:', error)
-          })
+        await onReorder(activeTab, firstChange.oldIndex, firstChange.newIndex)
       }
     }, [onReorder, activeTab, items])
 
-    const { ReorderGroup, ReorderItem, isDragging, isUpdating } = useFramerMotion({
-      initialItems: localItems,
+    const { 
+      items: localItems, 
+      ReorderGroup, 
+      ReorderItem, 
+      isDragging, 
+      isUpdating, 
+      hasChanges, 
+      pendingCount, 
+      forceSave 
+    } = useFramerMotion({
+      initialItems: items,
       onReorder: handleReorder,
-      axis: 'y',
+      axis: 'y', // Solo vertical
       layoutScroll: true,
-      optimisticUpdate: true
+      optimisticUpdate: true,
+      debounceMs: 30000 // 30 segundos
     })
 
     return (
@@ -101,13 +89,12 @@ export const ItemList = React.forwardRef<HTMLDivElement, ItemListProps>(
                   value={item}
                   className="focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg"
                 >
-                  <SwipeableItemCard
+                  <IonicSwipeItem
                     item={item}
-                    isDragging={isDragging}
-                    showDragHandle={!!onReorder}
                     onToggleCompleted={onToggleCompleted}
                     onMoveToStatus={onMoveToStatus}
                     onDelete={onDelete}
+                    onMoveToNextMonth={(id) => onMoveToStatus?.(id, 'proximo-mes')}
                   />
                 </ReorderItem>
               ))}
@@ -127,6 +114,14 @@ export const ItemList = React.forwardRef<HTMLDivElement, ItemListProps>(
             </div>
           </div>
         )}
+        
+        {/* Indicador de cambios pendientes */}
+        <PendingChangesIndicator
+          hasChanges={hasChanges}
+          pendingCount={pendingCount}
+          isSaving={isUpdating}
+          onForceSave={forceSave}
+        />
       </div>
     )
   }

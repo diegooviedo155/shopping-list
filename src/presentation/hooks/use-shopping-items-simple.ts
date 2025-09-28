@@ -216,7 +216,9 @@ export function useShoppingItems(): UseShoppingItemsReturn {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
+        const errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`
+        console.error('[useShoppingItems] Reorder error:', errorMessage)
+        throw new Error(errorMessage)
       }
 
       // Refetch items to get updated order
@@ -224,7 +226,8 @@ export function useShoppingItems(): UseShoppingItemsReturn {
       console.log('[useShoppingItems] Items reordered successfully')
     } catch (err) {
       console.error('[useShoppingItems] Error reordering items:', err)
-      setError(err instanceof Error ? err.message : 'Failed to reorder items')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to reorder items'
+      setError(errorMessage)
       throw err
     }
   }, [fetchItems])

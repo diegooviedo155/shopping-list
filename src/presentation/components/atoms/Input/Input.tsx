@@ -1,6 +1,7 @@
 import React from 'react'
 import { Input as ShadcnInput } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { useStableId } from '../../../hooks/use-stable-id'
 
 export interface InputProps extends React.ComponentProps<typeof ShadcnInput> {
   error?: string
@@ -23,7 +24,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     required = false,
     ...props 
   }, ref) => {
-    const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`
+    const generatedId = useStableId('input')
+    const inputId = id || generatedId
 
     return (
       <div className="space-y-2">

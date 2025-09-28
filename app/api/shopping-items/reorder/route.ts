@@ -5,6 +5,9 @@ import { toDatabaseStatus } from "@/lib/utils/status-conversion"
 
 export async function POST(request: NextRequest) {
   try {
+    // Ensure Prisma connection
+    await prisma.$connect()
+    
     const body = await request.json()
     
     // Validar los datos de entrada

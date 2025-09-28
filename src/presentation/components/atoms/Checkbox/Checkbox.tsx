@@ -1,6 +1,7 @@
 import React from 'react'
 import { Checkbox as ShadcnCheckbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
+import { useStableId } from '../../../hooks/use-stable-id'
 
 export interface CheckboxProps extends React.ComponentProps<typeof ShadcnCheckbox> {
   label?: string
@@ -34,7 +35,8 @@ export const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>(
     id,
     ...props 
   }, ref) => {
-    const checkboxId = id || `checkbox-${Math.random().toString(36).substr(2, 9)}`
+    const generatedId = useStableId('checkbox')
+    const checkboxId = id || generatedId
 
     if (label || description) {
       return (

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from 'framer-motion'
-import { Button, Icon } from '../../atoms'
+import { Button } from '../../atoms'
 import { ButtonGroup } from '../../molecules'
 import { AddItemForm, ItemList } from '../../organisms'
 import { PageHeader, PageLayout } from '../../templates'
@@ -19,8 +19,8 @@ interface ShoppingListManagerProps {
 }
 
 const STATUS_OPTIONS = [
-  { value: 'este-mes', label: 'Este mes', icon: <Icon icon={Calendar} size="sm" /> },
-  { value: 'proximo-mes', label: 'Próximo mes', icon: <Icon icon={CalendarDays} size="sm" /> },
+  { value: 'este-mes', label: 'Este mes', icon: <Calendar size={16} /> },
+  { value: 'proximo-mes', label: 'Próximo mes', icon: <CalendarDays size={16} /> },
 ]
 
 export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
@@ -151,7 +151,7 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
           {/* Add Item Form */}
           <StaggerItem>
             <motion.div 
-              className="mb-6"
+              className="mb-8"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}

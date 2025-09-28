@@ -33,8 +33,9 @@ export const ButtonGroup = React.forwardRef<HTMLDivElement, ButtonGroupProps>(
       <div
         ref={ref}
         className={cn(
-          'flex gap-2',
+          'flex gap-2 overflow-x-auto scrollbar-hide',
           orientation === 'vertical' && 'flex-col',
+          orientation === 'horizontal' && 'flex-nowrap',
           className
         )}
         role="group"
@@ -47,10 +48,13 @@ export const ButtonGroup = React.forwardRef<HTMLDivElement, ButtonGroupProps>(
             size={size}
             onClick={() => onChange(option.value)}
             disabled={option.disabled}
-            className="flex-1"
+            className={cn(
+              'flex-shrink-0',
+              orientation === 'horizontal' ? 'min-w-fit' : 'flex-1'
+            )}
           >
             {option.icon && <span className="mr-2">{option.icon}</span>}
-            {option.label}
+            <span className="whitespace-nowrap">{option.label}</span>
           </Button>
         ))}
       </div>

@@ -36,9 +36,6 @@ export async function GET() {
       }, 
       { status: 500 }
     )
-  } finally {
-    // Cerrar la conexión a la base de datos
-    await prisma.$disconnect().catch(console.error)
   }
 }
 
@@ -74,7 +71,7 @@ export async function POST(request: NextRequest) {
     const item = await prisma.shoppingItem.create({
       data: {
         name: name.trim(),
-        category,
+        category: category as any,
         status: dbStatus,
         completed: false,
         orderIndex,

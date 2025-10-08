@@ -18,3 +18,5 @@ export type { CheckboxProps } from './Checkbox'
 
 export { LoadingIndicator } from './LoadingIndicator'
 export type { LoadingIndicatorProps } from './LoadingIndicator'
+
+export { OptimisticCheckbox } from './OptimisticCheckbox'

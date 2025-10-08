@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
+import { OptimisticCheckbox } from "@/components/atoms"
 import { ArrowLeft, Plus, GripVertical, ShoppingCart, Trash2, Calendar, CalendarDays, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useShoppingItems } from "@/lib/hooks/use-shopping-items"
@@ -201,7 +201,12 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
                               <GripVertical className="w-4 h-4" />
                             </div>
 
-                            <Checkbox checked={item.completed} onCheckedChange={() => toggleItemCompleted(item.id)} />
+                            <OptimisticCheckbox
+                              checked={item.completed}
+                              onToggle={toggleItemCompleted}
+                              itemId={item.id}
+                              aria-label={item.completed ? 'Marcar como pendiente' : 'Marcar como completado'}
+                            />
 
                             <div className="flex-1">
                               <p className={cn("font-medium", item.completed && "line-through text-muted-foreground")}>

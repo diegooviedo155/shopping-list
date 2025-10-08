@@ -163,12 +163,28 @@ export function useShoppingItems(): UseShoppingItemsReturn {
   }, [])
 
   const toggleItemCompleted = useCallback(async (id: string) => {
+    const item = items.find(item => item.id === id)
+    if (!item) throw new Error('Item not found')
+    
+    const newCompleted = !item.completed
+    
+    // Actualización optimista - cambiar solo el estado completed
+    setItems(prev => prev.map(item => 
+      item.id === id 
+        ? { ...item, completed: newCompleted }
+        : item
+    ))
+    
     try {
-      const item = items.find(item => item.id === id)
-      if (!item) throw new Error('Item not found')
-      
-      await updateItem(id, { completed: !item.completed })
+      // Sincronizar con el servidor en background
+      await updateItem(id, { completed: newCompleted })
     } catch (err) {
+      // Rollback en caso de error
+      setItems(prev => prev.map(item => 
+        item.id === id 
+          ? { ...item, completed: !newCompleted }
+          : item
+      ))
       setError(err instanceof Error ? err.message : 'Failed to toggle item')
       throw err
     }

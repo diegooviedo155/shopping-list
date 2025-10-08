@@ -3,10 +3,10 @@ import { prisma } from "@/lib/prisma"
 import { validateUpdateItem } from "@/lib/validations/shopping"
 import { toDatabaseStatus, toFrontendStatus } from "@/lib/utils/status-conversion"
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const body = await request.json()
-    const { id } = params
+    const { id } = await params
     
     // Validar los datos de entrada
     const validation = validateUpdateItem(body)
@@ -47,9 +47,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params
+    const { id } = await params
 
     // Verificar que el item existe antes de eliminarlo
     const existingItem = await prisma.shoppingItem.findUnique({

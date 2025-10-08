@@ -2,9 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 interface Context {
-  params: {
+  params: Promise<{
     category: string
-  }
+  }>
 }
 
 export async function GET(
@@ -12,7 +12,7 @@ export async function GET(
   { params }: Context
 ) {
   try {
-    const { category } = await Promise.resolve({ category: params.category });
+    const { category } = await params;
 
     if (!category) {
       throw new Error('Category parameter is required');

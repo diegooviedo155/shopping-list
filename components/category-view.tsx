@@ -7,7 +7,6 @@ import { ITEM_STATUS } from "@/lib/constants/item-status"
 import { CATEGORIES, CATEGORY_CONFIG } from "@/lib/constants/categories"
 import { Checkbox } from "./ui/checkbox"
 import { Badge } from "./ui/badge"
-import { createClient } from "@/lib/supabase/client"
 import type { ShoppingItem } from "@/lib/types/database"
 
 export function CategoryView({ category, onBack }: { category: string; onBack: () => void }) {
@@ -55,14 +54,19 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
   const toggleItemCompleted = async (itemId: string, currentStatus: boolean) => {
     try {
       setIsToggling(prev => ({ ...prev, [itemId]: true }))
-      const supabase = createClient()
       
-      const { error } = await supabase
-        .from('shopping_items')
-        .update({ completed: !currentStatus })
-        .eq('id', itemId)
+      const response = await fetch(`/api/shopping-items/${itemId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ completed: !currentStatus }),
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Error al actualizar el producto')
+      }
 
       setItems(prevItems =>
         prevItems.map(item =>
@@ -124,15 +128,11 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
                 className="flex items-center gap-3 p-3 bg-card rounded-lg border border-border"
               >
                 <Checkbox
-                  id={`item-${item.id}`}
                   checked={item.completed}
                   onCheckedChange={() => toggleItemCompleted(item.id, item.completed)}
-                  className="h-5 w-5 rounded-full"
-                  disabled={isToggling[item.id]}
+                  aria-label={item.completed ? 'Marcar como pendiente' : 'Marcar como completado'}
+                  className="h-5 w-5"
                 />
-                {isToggling[item.id] && (
-                  <Loader2 className="w-4 h-4 animate-spin absolute inset-0 m-auto" />
-                )}
                 <label
                   htmlFor={`item-${item.id}`}
                   className={`flex-1 text-sm ${

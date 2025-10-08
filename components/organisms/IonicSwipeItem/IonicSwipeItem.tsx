@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, useMotionValue, useTransform, useSpring, PanInfo } from 'framer-motion'
-import { Button } from '../../atoms'
+import { Button, OptimisticCheckbox } from '../../atoms'
 import { ShoppingItem } from '../../../../core/domain/entities/ShoppingItem'
 import { cn } from '@/lib/utils'
 import { Trash2, Calendar, GripVertical } from 'lucide-react'
@@ -205,22 +205,14 @@ export function IonicSwipeItem({
             <GripVertical size={16} />
           </div>
 
-          {/* Checkbox */}
-          <button
-            onClick={handleToggleCompleted}
-            className={cn(
-              "flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors",
-              item.completed
-                ? "bg-primary border-primary text-primary-foreground"
-                : "border-muted-foreground hover:border-primary"
-            )}
-          >
-            {item.completed && (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20,6 9,17 4,12"></polyline>
-              </svg>
-            )}
-          </button>
+          {/* Optimistic Checkbox */}
+          <OptimisticCheckbox
+            checked={item.completed}
+            onToggle={onToggleCompleted}
+            itemId={item.id}
+            aria-label={item.completed ? 'Marcar como pendiente' : 'Marcar como completado'}
+            className="flex-shrink-0"
+          />
 
           {/* Item Content */}
           <div className="flex-1 min-w-0">

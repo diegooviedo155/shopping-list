@@ -14,7 +14,8 @@ datasource db {
 model ShoppingItem {
   id          String   @id @default(cuid())
   name        String
-  category    Category
+  categoryId  String   @map("category_id")
+  category    Category @relation(fields: [categoryId], references: [id])
   status      ItemStatus
   completed   Boolean  @default(false)
   orderIndex  Int      @map("order_index")
@@ -24,12 +25,19 @@ model ShoppingItem {
   @@map("shopping_items")
 }
 
-enum Category {
-  supermercado
-  verduleria
-  carniceria
+model Category {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  slug        String        @unique
+  color       String?
+  icon        String?
+  isActive    Boolean       @default(true) @map("is_active")
+  orderIndex  Int           @default(0) @map("order_index")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  items       ShoppingItem[]
 
-  @@map("category")
+  @@map("categories")
 }
 
 enum ItemStatus {

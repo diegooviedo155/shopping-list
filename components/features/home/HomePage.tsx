@@ -9,10 +9,10 @@ import { PageLayout } from '../../templates'
 import { usePageTransitions } from '../../../hooks'
 import { useShoppingItemsSimple } from '../../../hooks'
 import { useToast } from '../../../hooks/use-toast'
-import { LoadingOverlay } from '@/components/loading-states'
+import { LoadingSpinner } from '@/components/loading-states'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { cn } from '@/lib/utils'
-import { Plus, ShoppingCart } from 'lucide-react'
+import { Plus, ShoppingCart, Settings } from 'lucide-react'
 
 const CATEGORIES = [
   {
@@ -75,7 +75,14 @@ export function HomePage() {
   }
 
   if (loading) {
-    return <LoadingOverlay isLoading={true}>Cargando productos...</LoadingOverlay>
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <LoadingSpinner size="lg" className="mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Cargando productos...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -142,25 +149,25 @@ export function HomePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
+            > 
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => router.push('/admin/categories')}
+              className="gap-2 text-white"
             >
+              <Settings className="w-4 h-4" />
+              Gestionar Categorías
+            </Button>
               <Button
                 onClick={handleGoToLists}
                 size="lg"
-                className="flex items-center gap-2 bg-primary hover:bg-primary/90"
-              >
-                <ShoppingCart size={20} />
-                Ver Todas las Listas
-              </Button>
-              
-              <Button
-                onClick={handleGoToLists}
-                variant="outline"
-                size="lg"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white"
               >
                 <Plus size={20} />
                 Agregar Producto
               </Button>
+              
             </motion.div>
           </StaggerItem>
 

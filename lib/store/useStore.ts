@@ -114,7 +114,7 @@ export const useStore = create<StoreState>((set, get) => ({
     set({ loading: true, error: null });
     
     try {
-      const url = `/api/categories/${encodeURIComponent(category)}`;
+      const url = `/api/items/by-category/${encodeURIComponent(category)}`;
       
       const response = await fetch(url);
       

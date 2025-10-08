@@ -8,6 +8,8 @@
     "lint": "next lint",
     "start": "next start",
     "db:seed": "ts-node prisma/seed.ts",
+    "db:seed:categories": "ts-node prisma/seed-categories.ts",
+    "setup:categories": "node scripts/setup-categories.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

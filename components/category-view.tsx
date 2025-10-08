@@ -27,7 +27,7 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
         setLoading(true)
         setError(null)
         
-        const response = await fetch(`/api/categories/${encodeURIComponent(category)}`)
+        const response = await fetch(`/api/items/by-category/${encodeURIComponent(category)}`)
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))

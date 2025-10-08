@@ -45,7 +45,7 @@ export const CategoryCard = React.forwardRef<HTMLDivElement, CategoryCardProps>(
       <Card
         ref={ref}
         className={cn(
-          'p-4 text-center cursor-pointer hover:bg-accent/10 active:scale-95 transition-all',
+          'p-3 text-center gap-1 cursor-pointer hover:bg-accent/10 active:scale-95 transition-all',
           className
         )}
         onClick={handleClick}
@@ -70,7 +70,7 @@ export const CategoryCard = React.forwardRef<HTMLDivElement, CategoryCardProps>(
           )}
         </div>
         
-        <h3 className="text-lg font-semibold text-foreground mb-2">
+        <h3 className="text-md font-semibold text-foreground mb-2">
           {category.name}
         </h3>
         

@@ -196,94 +196,106 @@ export function CategoryManagement() {
         />
       )}
 
-      {editingCategory && (
-        <CategoryForm
-          category={editingCategory}
-          onSave={handleUpdateCategory}
-          onCancel={() => setEditingCategory(null)}
-          isLoading={isSubmitting}
-        />
-      )}
-
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {categories.map((category) => (
-          <Card key={category.id} className={!category.isActive ? 'opacity-50' : ''}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  {category.icon && (
-                    <span className="text-lg">{category.icon}</span>
-                  )}
-                  {category.name}
-                </CardTitle>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setEditingCategory(category)}
-                  >
+          <div key={category.id}>
+            {editingCategory?.id === category.id ? (
+              <Card className="border-primary">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
                     <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setDeletingCategory(category)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Slug:</span>
-                <Badge variant="outline">{category.slug}</Badge>
-              </div>
-              
-              {category.color && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Color:</span>
-                  <div
-                    className="w-6 h-6 rounded border"
-                    style={{ backgroundColor: category.color }}
+                    Editando: {category.name}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CategoryForm
+                    category={editingCategory}
+                    onSave={handleUpdateCategory}
+                    onCancel={() => setEditingCategory(null)}
+                    isLoading={isSubmitting}
                   />
-                  <span className="text-sm font-mono">{category.color}</span>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Items:</span>
-                <Badge variant="secondary">
-                  {category._count?.items || 0}
-                </Badge>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Orden:</span>
-                <Badge variant="outline">{category.orderIndex}</Badge>
-              </div>
-
-              <div className="flex items-center justify-between pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => toggleCategoryStatus(category)}
-                >
-                  {category.isActive ? (
-                    <>
-                      <EyeOff className="w-4 h-4 mr-2" />
-                      Desactivar
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="w-4 h-4 mr-2" />
-                      Activar
-                    </>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className={!category.isActive ? 'opacity-50' : ''}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      {category.icon && (
+                        <span className="text-lg">{category.icon}</span>
+                      )}
+                      {category.name}
+                    </CardTitle>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditingCategory(category)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeletingCategory(category)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Slug:</span>
+                    <Badge variant="outline">{category.slug}</Badge>
+                  </div>
+                  
+                  {category.color && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Color:</span>
+                      <div
+                        className="w-6 h-6 rounded border"
+                        style={{ backgroundColor: category.color }}
+                      />
+                      <span className="text-sm font-mono">{category.color}</span>
+                    </div>
                   )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Items:</span>
+                    <Badge variant="secondary">
+                      {category._count?.items || 0}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Orden:</span>
+                    <Badge variant="outline">{category.orderIndex}</Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleCategoryStatus(category)}
+                    >
+                      {category.isActive ? (
+                        <>
+                          <EyeOff className="w-4 h-4 mr-2" />
+                          Desactivar
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="w-4 h-4 mr-2" />
+                          Activar
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         ))}
       </div>
 

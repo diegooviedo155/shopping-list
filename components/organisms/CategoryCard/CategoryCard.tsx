@@ -45,7 +45,7 @@ export const CategoryCard = React.forwardRef<HTMLDivElement, CategoryCardProps>(
       <Card
         ref={ref}
         className={cn(
-          'p-3 text-center gap-1 cursor-pointer hover:bg-accent/10 active:scale-95 transition-all',
+          'p-3 h-48 text-center gap-1 cursor-pointer hover:bg-accent/10 active:scale-95 transition-all',
           className
         )}
         onClick={handleClick}

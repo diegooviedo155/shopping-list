@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import prisma from '@/lib/prisma'
 import { UpdateCategoryData } from '@/lib/types/category'
 
 interface Context {
   params: Promise<{ id: string }>
 }
 
-export async function GET({ params }: Context) {
+export async function GET(request: NextRequest, { params }: Context) {
   try {
     const { id } = await params
     
@@ -36,15 +36,23 @@ export async function GET({ params }: Context) {
   }
 }
 
-export async function PATCH({ params }: Context, request: NextRequest) {
+export async function PATCH(request: NextRequest, { params }: Context) {
   try {
     const { id } = await params
     const body: UpdateCategoryData = await request.json()
+
+    console.log('PATCH request received:', { id, body })
+
+    // Test database connection first
+    await prisma.$connect()
+    console.log('Database connected successfully')
 
     // Verificar si la categoría existe
     const existingCategory = await prisma.category.findUnique({
       where: { id }
     })
+
+    console.log('Existing category:', existingCategory)
 
     if (!existingCategory) {
       return NextResponse.json(
@@ -73,17 +81,25 @@ export async function PATCH({ params }: Context, request: NextRequest) {
       data: body
     })
 
+    console.log('Category updated successfully:', updatedCategory)
     return NextResponse.json(updatedCategory)
   } catch (error) {
     console.error('Error updating category:', error)
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    })
     return NextResponse.json(
-      { error: 'Failed to update category' },
+      { 
+        error: 'Failed to update category',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }
 }
 
-export async function DELETE({ params }: Context) {
+export async function DELETE(request: NextRequest, { params }: Context) {
   try {
     const { id } = await params
 

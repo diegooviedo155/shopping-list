@@ -11,9 +11,9 @@ export const createItemSchema = z.object({
     .max(100, 'El nombre no puede exceder 100 caracteres')
     .trim(),
   category: z
-    .enum(Object.values(CATEGORIES) as [string, ...string[]], {
-      errorMap: () => ({ message: 'Categoría inválida' })
-    }),
+    .string()
+    .min(1, 'La categoría es requerida')
+    .cuid('ID de categoría inválido'),
   status: z
     .enum(Object.values(ITEM_STATUS) as [string, ...string[]], {
       errorMap: () => ({ message: 'Estado inválido' })
@@ -30,9 +30,9 @@ export const updateItemSchema = z.object({
     .trim()
     .optional(),
   category: z
-    .enum(Object.values(CATEGORIES) as [string, ...string[]], {
-      errorMap: () => ({ message: 'Categoría inválida' })
-    })
+    .string()
+    .min(1, 'La categoría es requerida')
+    .cuid('ID de categoría inválido')
     .optional(),
   status: z
     .enum(Object.values(ITEM_STATUS) as [string, ...string[]], {
@@ -68,7 +68,9 @@ export const searchSchema = z.object({
     .trim()
     .optional(),
   category: z
-    .enum(Object.values(CATEGORIES) as [string, ...string[]])
+    .string()
+    .min(1, 'La categoría es requerida')
+    .cuid('ID de categoría inválido')
     .optional(),
   status: z
     .enum(Object.values(ITEM_STATUS) as [string, ...string[]])

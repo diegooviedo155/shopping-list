@@ -11,8 +11,9 @@ import { useShoppingItemsSimple } from '../../../hooks'
 import { useToast } from '../../../hooks/use-toast'
 import { LoadingSpinner } from '@/components/loading-states'
 import { ErrorBoundary } from '@/components/error-boundary'
+import { AddProductModal } from '@/components/modals'
 import { cn } from '@/lib/utils'
-import { Plus, ShoppingCart, Settings } from 'lucide-react'
+import { Plus, ShoppingCart, Settings, ShoppingBasket } from 'lucide-react'
 
 const CATEGORIES = [
   {
@@ -55,7 +56,7 @@ const CATEGORIES = [
 
 export function HomePage() {
   const router = useRouter()
-  const { items, loading, error, getItemsByCategory } = useShoppingItemsSimple()
+  const { items, loading, error, getItemsByCategory, createItem, refetch } = useShoppingItemsSimple()
   const { showError } = useToast()
   const { StaggerContainer, StaggerItem } = usePageTransitions()
 
@@ -72,6 +73,16 @@ export function HomePage() {
 
   const handleGoToLists = () => {
     router.push('/lists')
+  }
+
+  const handleAddItem = async (data: { name: string; category: string; status: string }) => {
+    try {
+      await createItem(data.name, data.category, data.status)
+      showError('Producto agregado exitosamente', 'success')
+      refetch() // Refrescar la lista
+    } catch (error) {
+      showError('Error al agregar el producto', 'error')
+    }
   }
 
   if (loading) {
@@ -153,20 +164,34 @@ export function HomePage() {
             <Button
               variant="outline"
               size="lg"
-              onClick={() => router.push('/admin/categories')}
-              className="gap-2 text-white"
+              onClick={handleGoToLists}
+              className="gap-2 h-16 text-white"
             >
               <Settings className="w-4 h-4" />
+              Lista de productos
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => router.push('/admin/categories')}
+              className="gap-2 h-16 text-white"
+            >
+              <ShoppingBasket className="w-4 h-4" />
               Gestionar Categorías
             </Button>
-              <Button
-                onClick={handleGoToLists}
-                size="lg"
-                className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white"
-              >
-                <Plus size={20} />
-                Agregar Producto
-              </Button>
+              <AddProductModal
+                onAddItem={handleAddItem}
+                isLoading={loading}
+                trigger={
+                  <Button
+                    size="lg"
+                    className="h-16 flex items-center gap-2 bg-primary hover:bg-primary/90 text-white"
+                  >
+                    <Plus size={20} />
+                    Agregar Producto
+                  </Button>
+                }
+              />
               
             </motion.div>
           </StaggerItem>

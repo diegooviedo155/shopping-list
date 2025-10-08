@@ -80,12 +80,11 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
     }
   }
 
-  const categoryItems = items.sort((a, b) => a.order_index - b.order_index)
+  const categoryItems = items.sort((a, b) => a.orderIndex - b.orderIndex)
   const thisMonthItems = categoryItems.filter((item) => item.status === ITEM_STATUS.THIS_MONTH)
   const nextMonthItems = categoryItems.filter((item) => item.status === ITEM_STATUS.NEXT_MONTH)
 
-  const categoryInfo = Object.entries(CATEGORIES).find(([_, value]) => value === category)
-  const categoryName = categoryInfo ? CATEGORY_CONFIG[category as keyof typeof CATEGORIES]?.name : category
+  const categoryName = (CATEGORY_CONFIG as any)[category]?.name || category
   const categoryColor = `var(--color-${category.toLowerCase()})`
 
   if (loading && items.length === 0) {
@@ -135,7 +134,7 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
                 />
                 <label
                   htmlFor={`item-${item.id}`}
-                  className={`flex-1 text-sm ${
+                  className={`flex-1 text-sm capitalize ${
                     item.completed ? 'line-through text-muted-foreground' : 'text-foreground'
                   }`}
                 >

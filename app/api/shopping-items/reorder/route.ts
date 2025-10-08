@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import prisma from "@/lib/prisma"
 import { validateReorderItems } from "@/lib/validations/shopping"
 import { toDatabaseStatus } from "@/lib/utils/status-conversion"
 

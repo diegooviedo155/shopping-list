@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import prisma from "@/lib/prisma"
 import { validateCreateItem } from "@/lib/validations/shopping"
 import { toDatabaseStatus, toFrontendStatus } from "@/lib/utils/status-conversion"
 
@@ -10,6 +10,9 @@ export async function GET() {
     
     // Obtener todos los items
     const items = await prisma.shoppingItem.findMany({
+      include: {
+        category: true
+      },
       orderBy: {
         orderIndex: "asc",
       },
@@ -65,7 +68,7 @@ export async function POST(request: NextRequest) {
     const item = await prisma.shoppingItem.create({
       data: {
         name: name.trim(),
-        category: category as any,
+        categoryId: category,
         status: dbStatus,
         completed: false,
         orderIndex,

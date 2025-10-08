@@ -53,7 +53,7 @@ export function useShoppingItems(): UseShoppingItemsReturn {
         ShoppingItem.fromPersistence({
           id: item.id,
           name: new ItemName(item.name),
-          category: new Category(item.category),
+          category: new Category(item.category?.slug || item.categoryId),
           status: new ItemStatus(item.status),
           completed: item.completed,
           orderIndex: item.orderIndex,
@@ -91,7 +91,7 @@ export function useShoppingItems(): UseShoppingItemsReturn {
       const newItem = ShoppingItem.fromPersistence({
         id: newItemData.id,
         name: new ItemName(newItemData.name),
-        category: new Category(newItemData.category),
+        category: new Category(newItemData.category?.slug || newItemData.categoryId),
         status: new ItemStatus(newItemData.status),
         completed: newItemData.completed,
         orderIndex: newItemData.orderIndex,

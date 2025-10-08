@@ -12,7 +12,6 @@ export async function GET(
   { params }: Context
 ) {
   try {
-    // Get the category from the URL path
     const { category } = await Promise.resolve({ category: params.category });
 
     if (!category) {
@@ -33,13 +32,11 @@ export async function GET(
       .order('order_index', { ascending: true });
 
     if (error) {
-      console.error('Supabase error:', error);
       throw error;
     }
 
     return NextResponse.json(items || []);
   } catch (error) {
-    console.error('Error in API route:', error);
     return NextResponse.json(
       { 
         error: 'Error al cargar los productos',

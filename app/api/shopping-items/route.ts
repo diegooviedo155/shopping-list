@@ -5,11 +5,8 @@ import { toDatabaseStatus, toFrontendStatus } from "@/lib/utils/status-conversio
 
 export async function GET() {
   try {
-    console.log('Fetching items from database...')
-    
     // Verificar la conexión a la base de datos
     await prisma.$connect()
-    console.log('Database connection successful')
     
     // Obtener todos los items
     const items = await prisma.shoppingItem.findMany({
@@ -17,8 +14,6 @@ export async function GET() {
         orderIndex: "asc",
       },
     })
-
-    console.log(`Found ${items.length} items in the database`)
     
     // Convert database status format (este_mes) to frontend format (este-mes)
     const result = items.map(item => ({
@@ -28,7 +23,6 @@ export async function GET() {
     
     return NextResponse.json(result)
   } catch (error) {
-    console.error("Error fetching shopping items:", error)
     return NextResponse.json(
       { 
         error: "Failed to fetch shopping items",
@@ -86,7 +80,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result)
   } catch (error) {
-    console.error("Error creating shopping item:", error)
     return NextResponse.json({ 
       error: "Failed to create shopping item",
       details: error instanceof Error ? error.message : 'Unknown error'

@@ -101,7 +101,6 @@ export const AddItemForm = React.forwardRef<HTMLFormElement, AddItemFormProps>(
         })
         reset()
       } catch (error) {
-        console.error('Error adding item:', error)
       }
     }, [onAddItem, selectedCategory, selectedStatus, reset])
 

@@ -38,9 +38,7 @@ export function useFramerMotion<T>({
 
     try {
       await onReorder(items)
-      console.log('[useFramerMotion] Changes saved successfully')
     } catch (error) {
-      console.error('[useFramerMotion] Error saving changes:', error)
       // Revertir a los items originales en caso de error
       setItems(previousItemsRef.current)
     } finally {
@@ -70,8 +68,6 @@ export function useFramerMotion<T>({
     timeoutRef.current = setTimeout(() => {
       processPendingChanges()
     }, debounceMs)
-
-    console.log(`[useFramerMotion] Reorder queued, will save in ${debounceMs}ms`)
   }, [items, onReorder, optimisticUpdate, debounceMs, processPendingChanges])
 
   // Limpiar timeout al desmontar

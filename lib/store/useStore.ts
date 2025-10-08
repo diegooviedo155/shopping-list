@@ -91,7 +91,6 @@ export const useStore = create<StoreState>((set, get) => ({
       });
       
     } catch (error) {
-      console.error('Error fetching all items:', error);
       set({ 
         error: 'Error al cargar los ítems. Intente nuevamente.',
         loading: false,
@@ -109,27 +108,22 @@ export const useStore = create<StoreState>((set, get) => ({
     
     // Si ya hemos cargado esta categoría, no hacemos nada
     if (currentState.hasFetchedCategories[category]) {
-      console.log(`Category ${category} already loaded, skipping fetch`);
       return;
     }
 
-    console.log(`Fetching items for category: ${category}`);
     set({ loading: true, error: null });
     
     try {
       const url = `/api/categories/${encodeURIComponent(category)}`;
-      console.log(`Making request to: ${url}`);
       
       const response = await fetch(url);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`Error response: ${response.status} - ${errorText}`);
         throw new Error(`Error al cargar los ítems de la categoría: ${response.status}`);
       }
       
       const items = await response.json();
-      console.log(`Received ${items.length} items for category ${category}:`, items);
       
       set((state) => ({
         categoryItems: {
@@ -144,7 +138,6 @@ export const useStore = create<StoreState>((set, get) => ({
       }));
       
     } catch (err) {
-      console.error('Error fetching category items:', err);
       set({ 
         error: err instanceof Error ? err.message : 'Error desconocido',
         loading: false,
@@ -202,7 +195,6 @@ export const useStore = create<StoreState>((set, get) => ({
         throw new Error('Error al actualizar el estado del ítem');
       }
     } catch (err) {
-      console.error('Error updating item status:', err);
       // Revertir en caso de error
       set((state) => {
         const updatedItems = { ...state.categoryItems };
@@ -282,7 +274,6 @@ export const useStore = create<StoreState>((set, get) => ({
         throw new Error('Error al actualizar el estado del ítem');
       }
     } catch (err) {
-      console.error('Error toggling item completed:', err);
       // Revertir en caso de error
       set((state) => {
         const updatedItems = { ...state.categoryItems };

@@ -50,7 +50,6 @@ export function AddItemForm({ onAddItem, isLoading = false, className }: AddItem
       })
       reset()
     } catch (error) {
-      console.error('Error adding item:', error)
     }
   }
 

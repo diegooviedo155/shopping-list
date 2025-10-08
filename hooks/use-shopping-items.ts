@@ -127,7 +127,6 @@ export function useShoppingItems(): UseShoppingItemsReturn {
         // Si falla el backend, revertir el estado optimista
         setItems(previousItems)
         setError(backendError instanceof Error ? backendError.message : 'Failed to reorder items')
-        console.error('Error reordering items:', backendError)
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to reorder items')

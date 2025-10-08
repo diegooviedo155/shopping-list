@@ -3,11 +3,8 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Iniciando seed...');
-
   // Borrar datos existentes (opcional, ten cuidado en producción)
   await prisma.shoppingItem.deleteMany({});
-  console.log('Datos existentes eliminados');
 
   // Crear datos de ejemplo
   const sampleItems = [
@@ -47,13 +44,10 @@ async function main() {
       data: item,
     });
   }
-
-  console.log('Datos de ejemplo insertados correctamente');
 }
 
 main()
   .catch((e) => {
-    console.error('Error durante el seed:', e);
     process.exit(1);
   })
   .finally(async () => {

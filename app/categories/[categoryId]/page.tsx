@@ -92,7 +92,6 @@ export default function CategoryPage() {
     categoryItems,
     async (reorderedItems) => {
       // Aquí podrías implementar reordenamiento si es necesario
-      console.log('Reordered items:', reorderedItems)
     },
     { debounceMs: 30000 }
   )

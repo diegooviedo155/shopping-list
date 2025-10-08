@@ -20,7 +20,6 @@ export function useDragDrop({ onReorderItems, activeTab }: UseDragDropProps) {
     try {
       await onReorderItems(activeTab, sourceIndex, destIndex)
     } catch (error) {
-      console.error('Error reordering items:', error)
     }
   }, [onReorderItems, activeTab])
 

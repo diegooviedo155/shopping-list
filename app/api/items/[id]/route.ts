@@ -45,13 +45,11 @@ export async function PATCH(
       .single();
 
     if (error) {
-      console.error('Supabase error:', error);
       throw error;
     }
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error updating item:', error);
     return NextResponse.json(
       { 
         error: 'Error al actualizar el ítem',

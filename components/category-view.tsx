@@ -43,7 +43,6 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
         
         setItems(data)
       } catch (err) {
-        console.error('Error fetching category items:', err)
         setError(err instanceof Error ? err.message : 'Error desconocido al cargar los productos')
       } finally {
         setLoading(false)
@@ -71,7 +70,6 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
         )
       )
     } catch (err) {
-      console.error('Error toggling item:', err)
       setError('Error al actualizar el producto')
     } finally {
       setIsToggling(prev => ({ ...prev, [itemId]: false }))

@@ -30,8 +30,6 @@ export function useShoppingItems(): UseShoppingItemsReturn {
     try {
       setLoading(true)
       setError(null)
-      console.log('[useShoppingItems] Fetching items from API...')
-      
       const response = await fetch('/api/shopping-items', {
         cache: 'no-store',
         headers: {
@@ -39,15 +37,12 @@ export function useShoppingItems(): UseShoppingItemsReturn {
         }
       })
       
-      console.log('[useShoppingItems] Response status:', response.status)
-      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
       }
 
       const data = await response.json()
-      console.log('[useShoppingItems] Data received:', data)
       
       if (!Array.isArray(data)) {
         throw new Error('Expected array but received: ' + typeof data)
@@ -68,9 +63,7 @@ export function useShoppingItems(): UseShoppingItemsReturn {
       )
       
       setItems(domainItems)
-      console.log('[useShoppingItems] Items set successfully:', domainItems.length)
     } catch (err) {
-      console.error('[useShoppingItems] Error fetching items:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch items')
     } finally {
       setLoading(false)
@@ -80,7 +73,6 @@ export function useShoppingItems(): UseShoppingItemsReturn {
   const createItem = useCallback(async (name: string, category: string, status: string) => {
     try {
       setError(null)
-      console.log('[useShoppingItems] Creating item:', { name, category, status })
       
       const response = await fetch('/api/shopping-items', {
         method: 'POST',
@@ -108,9 +100,7 @@ export function useShoppingItems(): UseShoppingItemsReturn {
       })
       
       setItems(prev => [...prev, newItem])
-      console.log('[useShoppingItems] Item created successfully')
     } catch (err) {
-      console.error('[useShoppingItems] Error creating item:', err)
       setError(err instanceof Error ? err.message : 'Failed to create item')
       throw err
     }
@@ -119,7 +109,6 @@ export function useShoppingItems(): UseShoppingItemsReturn {
   const updateItem = useCallback(async (id: string, updates: Partial<{ name: string; category: string; status: string; completed: boolean }>) => {
     try {
       setError(null)
-      console.log('[useShoppingItems] Updating item:', id, updates)
       
       const response = await fetch(`/api/shopping-items/${id}`, {
         method: 'PATCH',
@@ -147,9 +136,7 @@ export function useShoppingItems(): UseShoppingItemsReturn {
       })
       
       setItems(prev => prev.map(item => item.id === id ? updatedItem : item))
-      console.log('[useShoppingItems] Item updated successfully')
     } catch (err) {
-      console.error('[useShoppingItems] Error updating item:', err)
       setError(err instanceof Error ? err.message : 'Failed to update item')
       throw err
     }
@@ -158,7 +145,6 @@ export function useShoppingItems(): UseShoppingItemsReturn {
   const deleteItem = useCallback(async (id: string) => {
     try {
       setError(null)
-      console.log('[useShoppingItems] Deleting item:', id)
       
       const response = await fetch(`/api/shopping-items/${id}`, {
         method: 'DELETE',
@@ -170,9 +156,7 @@ export function useShoppingItems(): UseShoppingItemsReturn {
       }
 
       setItems(prev => prev.filter(item => item.id !== id))
-      console.log('[useShoppingItems] Item deleted successfully')
     } catch (err) {
-      console.error('[useShoppingItems] Error deleting item:', err)
       setError(err instanceof Error ? err.message : 'Failed to delete item')
       throw err
     }
@@ -185,7 +169,6 @@ export function useShoppingItems(): UseShoppingItemsReturn {
       
       await updateItem(id, { completed: !item.completed })
     } catch (err) {
-      console.error('[useShoppingItems] Error toggling item:', err)
       setError(err instanceof Error ? err.message : 'Failed to toggle item')
       throw err
     }
@@ -195,7 +178,6 @@ export function useShoppingItems(): UseShoppingItemsReturn {
     try {
       await updateItem(id, { status: newStatus })
     } catch (err) {
-      console.error('[useShoppingItems] Error moving item:', err)
       setError(err instanceof Error ? err.message : 'Failed to move item')
       throw err
     }
@@ -204,7 +186,6 @@ export function useShoppingItems(): UseShoppingItemsReturn {
   const reorderItems = useCallback(async (status: string, sourceIndex: number, destIndex: number) => {
     try {
       setError(null)
-      console.log('[useShoppingItems] Reordering items:', { status, sourceIndex, destIndex })
       
       const response = await fetch('/api/shopping-items/reorder', {
         method: 'POST',
@@ -217,15 +198,12 @@ export function useShoppingItems(): UseShoppingItemsReturn {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         const errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`
-        console.error('[useShoppingItems] Reorder error:', errorMessage)
         throw new Error(errorMessage)
       }
 
       // Refetch items to get updated order
       await fetchItems()
-      console.log('[useShoppingItems] Items reordered successfully')
     } catch (err) {
-      console.error('[useShoppingItems] Error reordering items:', err)
       const errorMessage = err instanceof Error ? err.message : 'Failed to reorder items'
       setError(errorMessage)
       throw err

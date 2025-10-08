@@ -57,9 +57,7 @@ export function useDebouncedReorder({
         )
       )
 
-      console.log('[useDebouncedReorder] Changes saved successfully')
     } catch (error) {
-      console.error('[useDebouncedReorder] Error saving changes:', error)
       // Revertir a los items originales en caso de error
       setItems(originalItemsRef.current)
     } finally {
@@ -88,8 +86,6 @@ export function useDebouncedReorder({
     timeoutRef.current = setTimeout(() => {
       processPendingChanges()
     }, debounceMs)
-
-    console.log(`[useDebouncedReorder] Reorder queued, will save in ${debounceMs}ms`)
   }, [items, debounceMs, processPendingChanges])
 
   // Función para forzar el guardado inmediato

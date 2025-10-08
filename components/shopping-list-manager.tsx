@@ -37,7 +37,6 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
       await addItem(newItemName, selectedCategory, activeTab)
       setNewItemName("")
     } catch (err) {
-      console.error("Error adding item:", err)
     } finally {
       setIsAdding(false)
     }
@@ -56,31 +55,19 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
 
   // Filtrar y ordenar los items
   const currentItems = useMemo(() => {
-    console.log('Filtrando items. Estado activo:', activeTab)
     const filtered = items
       .filter((item) => {
         const matches = item.status === activeTab
-        console.log(`Item ${item.id}: status=${item.status}, activo=${activeTab}, coincide=${matches}`)
         return matches
       })
       .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
     
-    console.log('Items filtrados:', filtered)
     return filtered
   }, [items, activeTab])
 
   const completedCount = currentItems.filter((item) => item.completed).length
   const totalCount = currentItems.length
 
-  // Efecto para depuración
-  useEffect(() => {
-    console.log('Estado actualizado:', {
-      itemsCount: items.length,
-      currentItemsCount: currentItems.length,
-      activeTab,
-      itemStatuses: [...new Set(items.map(i => i.status))]
-    })
-  }, [items, currentItems, activeTab])
 
   if (loading && items.length === 0) {
     return (

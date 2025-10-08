@@ -27,8 +27,6 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       updateData.status = toDatabaseStatus(updateData.status) as any
     }
     
-    console.log('Updating item with data:', updateData)
-    
     const item = await prisma.shoppingItem.update({
       where: { id },
       data: updateData,
@@ -42,7 +40,6 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     
     return NextResponse.json(result)
   } catch (error) {
-    console.error("Error updating shopping item:", error)
     return NextResponse.json({ 
       error: "Failed to update shopping item",
       details: error instanceof Error ? error.message : 'Unknown error'
@@ -72,7 +69,6 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error deleting shopping item:", error)
     return NextResponse.json({ 
       error: "Failed to delete shopping item",
       details: error instanceof Error ? error.message : 'Unknown error'

@@ -13,7 +13,6 @@ export function useShoppingItems() {
     try {
       setLoading(true)
       setError(null)
-      console.log('[useShoppingItems] Iniciando fetchItems...')
       
       const response = await fetch("/api/shopping-items", {
         cache: 'no-store', // Evitar caché
@@ -24,34 +23,27 @@ export function useShoppingItems() {
         }
       })
       
-      console.log('[useShoppingItems] Respuesta recibida:', response.status, response.statusText)
-      
       if (!response.ok) {
         let errorMessage = `Error HTTP ${response.status}: ${response.statusText}`
         try {
           const errorData = await response.json()
-          console.error('[useShoppingItems] Error en la respuesta:', errorData)
           errorMessage = errorData.error || errorData.message || errorMessage
         } catch (e) {
           const text = await response.text()
-          console.error('[useShoppingItems] No se pudo parsear el error como JSON:', text)
           errorMessage = text || errorMessage
         }
         throw new Error(errorMessage)
       }
 
       const data = await response.json()
-      console.log('[useShoppingItems] Datos recibidos:', data)
       
       if (!Array.isArray(data)) {
-        console.error('[useShoppingItems] La respuesta no es un array:', data)
         throw new Error('Se esperaba un array de items pero se recibió: ' + typeof data)
       }
       
       // Asegurarse de que los items tengan el formato correcto
       const formattedItems = data.map((item: any, index: number) => {
         if (!item || typeof item !== 'object') {
-          console.error(`[useShoppingItems] Item inválido en la posición ${index}:`, item)
           return null
         }
         
@@ -76,11 +68,9 @@ export function useShoppingItems() {
       // Filtrar items nulos (si los hubiera)
       const validItems = formattedItems.filter((item): item is ShoppingItem => item !== null)
       
-      console.log(`[useShoppingItems] ${validItems.length} items formateados correctamente`)
       setItems(validItems)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Error fetching items"
-      console.error('Error in fetchItems:', errorMessage, err)
       setError(errorMessage)
     } finally {
       setLoading(false)
@@ -114,8 +104,6 @@ export function useShoppingItems() {
       const newCompleted = !item.completed;
       const newStatus = newCompleted ? ITEM_STATUS.THIS_MONTH : ITEM_STATUS.NEXT_MONTH;
 
-      console.log('Updating item:', { id, newCompleted, newStatus });
-
       const response = await fetch(`/api/items/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -127,12 +115,10 @@ export function useShoppingItems() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Error response:', errorData);
         throw new Error(errorData.error || "Failed to update item");
       }
 
       const updatedItem = await response.json();
-      console.log('Item updated successfully:', updatedItem);
 
       setItems((prev) => 
         prev.map((item) => 
@@ -147,7 +133,6 @@ export function useShoppingItems() {
         )
       )
     } catch (err) {
-      console.error('Error in toggleItemCompleted:', err);
       setError(err instanceof Error ? err.message : "Error updating item")
       throw err; // Re-lanzar el error para que pueda ser manejado por el componente
     }

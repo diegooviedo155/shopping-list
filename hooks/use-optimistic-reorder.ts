@@ -46,7 +46,6 @@ export function useOptimisticReorder({
       setIsUpdating(true)
       await onReorder(status, sourceIndex, destIndex)
     } catch (error) {
-      console.error('Error reordering items:', error)
       // Rollback en caso de error
       setItems(previousItemsRef.current)
       throw error

@@ -48,8 +48,8 @@ export const PageHeader = React.forwardRef<HTMLElement, PageHeaderProps>(
             </Button>
           )}
           
-          <div className="flex-1">
-            <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+            <h1 className="flex-1 text-lg font-semibold text-foreground capitalize">{title}</h1>
+          <div className="">
             
             {subtitle && (
               <p className="text-sm text-muted-foreground">{subtitle}</p>

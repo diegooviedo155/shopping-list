@@ -16,23 +16,9 @@ export function AdminNav() {
           <Button variant="ghost" size="sm" asChild>
             <Link href="/">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Volver
             </Link>
           </Button>
           <h1 className="text-lg font-semibold">Administración</h1>
-        </div>
-        
-        <div className="flex gap-2">
-          <Button
-            variant={pathname === '/admin/categories' ? 'default' : 'ghost'}
-            size="sm"
-            asChild
-          >
-            <Link href="/admin/categories">
-              <Settings className="w-4 h-4 mr-2" />
-              Categorías
-            </Link>
-          </Button>
         </div>
       </div>
     </nav>

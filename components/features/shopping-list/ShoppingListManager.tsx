@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from 'framer-motion'
-import { Button } from '../../atoms'
+import { Button, FloatingActionButton } from '../../atoms'
 import { ButtonGroup } from '../../molecules'
-import { AddItemForm, ItemList } from '../../organisms'
+import { ItemList } from '../../organisms'
 import { PageHeader, PageLayout } from '../../templates'
+import { AddProductModal } from '../../modals'
 import { usePageTransitions } from '../../../hooks'
 import { useShoppingItemsSimple } from '../../../hooks'
 import { useToast } from '../../../hooks/use-toast'
@@ -120,7 +121,6 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
   const header = (
     <PageHeader
       title="Listas de Compras"
-      progress={progress.total > 0 ? progress : undefined}
       showBackButton
       onBack={onBack}
     />
@@ -148,20 +148,6 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
             </motion.div>
           </StaggerItem>
 
-          {/* Add Item Form */}
-          <StaggerItem>
-            <motion.div 
-              className="mb-8"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <AddItemForm
-                onAddItem={handleAddItem}
-                isLoading={loading}
-              />
-            </motion.div>
-          </StaggerItem>
 
           {/* Items List */}
           <StaggerItem>
@@ -183,6 +169,18 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
             </LoadingOverlay>
           </StaggerItem>
         </StaggerContainer>
+        
+        {/* Floating Action Button with Modal */}
+        <AddProductModal
+          onAddItem={handleAddItem}
+          isLoading={loading}
+          trigger={
+            <FloatingActionButton
+              size="md"
+              position="bottom-right"
+            />
+          }
+        />
       </PageLayout>
     </ErrorBoundary>
   )

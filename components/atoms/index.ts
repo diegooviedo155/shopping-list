@@ -20,3 +20,6 @@ export { LoadingIndicator } from './LoadingIndicator'
 export type { LoadingIndicatorProps } from './LoadingIndicator'
 
 export { OptimisticCheckbox } from './OptimisticCheckbox'
+
+export { FloatingActionButton } from './FloatingActionButton'
+export type { FloatingActionButtonProps } from './FloatingActionButton'

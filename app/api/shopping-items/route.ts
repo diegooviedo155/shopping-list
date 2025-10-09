@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { name, category, status } = validation.data
+    const { name, categoryId, status } = validation.data
 
     // Convert frontend status format (este-mes) to database format (este_mes)
     const dbStatus = toDatabaseStatus(status)
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     const item = await prisma.shoppingItem.create({
       data: {
         name: name.trim(),
-        categoryId: category,
+        categoryId: categoryId,
         status: dbStatus,
         completed: false,
         orderIndex,

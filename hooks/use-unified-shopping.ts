@@ -3,11 +3,21 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import { useUnifiedShoppingStore } from '@/lib/store/unified-shopping-store'
 import type { Category, ItemStatus } from '@/lib/types/database'
-import type { ShoppingItem as DomainShoppingItem } from '@/lib/domain/entities/ShoppingItem'
+// Tipos simplificados
+interface SimpleShoppingItem {
+  id: string
+  name: string
+  category: string
+  status: string
+  completed: boolean
+  orderIndex: number
+  createdAt: Date
+  updatedAt: Date
+}
 
 interface UseUnifiedShoppingReturn {
   // Estado principal
-  items: DomainShoppingItem[]
+  items: SimpleShoppingItem[]
   loading: boolean
   error: string | null
   isRefreshing: boolean
@@ -17,17 +27,17 @@ interface UseUnifiedShoppingReturn {
   selectedCategory: Category
   
   // Items filtrados (memoizados)
-  currentItems: DomainShoppingItem[]
-  itemsByCategory: (category: Category) => DomainShoppingItem[]
-  itemsByStatus: (status: ItemStatus) => DomainShoppingItem[]
+  currentItems: SimpleShoppingItem[]
+  itemsByCategory: (category: Category) => SimpleShoppingItem[]
+  itemsByStatus: (status: ItemStatus) => SimpleShoppingItem[]
   
   // Contadores (memoizados)
   completedCount: number
   totalCount: number
   
   // Acciones de items
-  addItem: (name: string, category: Category, status: ItemStatus) => Promise<void>
-  updateItem: (id: string, updates: Partial<DomainShoppingItem>) => Promise<void>
+  addItem: (name: string, category: string, status: string) => Promise<void>
+  updateItem: (id: string, updates: Partial<SimpleShoppingItem>) => Promise<void>
   deleteItem: (id: string) => Promise<void>
   toggleItemCompleted: (id: string) => Promise<void>
   moveItemToStatus: (id: string, newStatus: ItemStatus) => Promise<void>
@@ -41,6 +51,8 @@ interface UseUnifiedShoppingReturn {
   // Utilidades
   refetch: (force?: boolean) => Promise<void>
   initialize: () => Promise<void>
+  isMovingItem: (id: string) => boolean
+  store: any
 }
 
 export function useUnifiedShopping(): UseUnifiedShoppingReturn {
@@ -49,9 +61,15 @@ export function useUnifiedShopping(): UseUnifiedShoppingReturn {
   // Inicialización automática solo una vez
   useEffect(() => {
     if (!store.hasInitialized) {
-      store.initialize()
+      store.initialize().catch((error) => {
+        // Error handling
+      });
     }
-  }, [store.hasInitialized, store.initialize])
+  }, [store.hasInitialized])
+
+  // Removed cleanAndUpdateItems useEffect - not needed with simplified store
+
+  // Removed problematic force fetch useEffect to prevent infinite loops
 
   // Items filtrados memoizados
   const currentItems = useMemo(() => {
@@ -120,6 +138,8 @@ export function useUnifiedShopping(): UseUnifiedShoppingReturn {
     // Utilidades
     refetch,
     initialize,
+    isMovingItem: store.isMovingItem,
+    store,
   }
 }
 

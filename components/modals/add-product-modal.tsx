@@ -84,7 +84,7 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
     resolver: zodResolver(createItemSchema),
     defaultValues: {
       name: '',
-      category: 'supermercado',
+      categoryId: 'supermercado',
       status: 'este-mes',
     },
   })
@@ -95,7 +95,7 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
   useEffect(() => {
     if (categories.length > 0 && !selectedCategory) {
       setSelectedCategory(categories[0].id)
-      setValue('category', categories[0].id)
+      setValue('categoryId', categories[0].id)
     }
   }, [categories, selectedCategory, setValue])
 
@@ -117,7 +117,7 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
 
   const handleCategoryChange = (categoryId: string) => {
     setSelectedCategory(categoryId)
-    setValue('category', categoryId)
+    setValue('categoryId', categoryId)
   }
 
   const handleStatusChange = (status: 'este-mes' | 'proximo-mes') => {

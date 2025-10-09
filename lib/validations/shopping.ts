@@ -10,7 +10,7 @@ export const createItemSchema = z.object({
     .min(2, 'El nombre debe tener al menos 2 caracteres')
     .max(100, 'El nombre no puede exceder 100 caracteres')
     .trim(),
-  category: z
+  categoryId: z
     .string()
     .min(1, 'La categoría es requerida')
     .cuid('ID de categoría inválido'),

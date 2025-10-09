@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from 'framer-motion'
 import { Button } from '../../atoms'
@@ -59,6 +59,12 @@ export function HomePage() {
   const { items, loading, error, itemsByCategory, addItem, refetch } = useUnifiedShopping()
   const { showError } = useToast()
   const { StaggerContainer, StaggerItem } = usePageTransitions()
+  const [isHydrated, setIsHydrated] = useState(false)
+
+  // Manejar hidratación
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
 
   // Manejar errores
   useEffect(() => {
@@ -75,9 +81,9 @@ export function HomePage() {
     router.push('/lists')
   }
 
-  const handleAddItem = async (data: { name: string; category: string; status: string }) => {
+  const handleAddItem = async (data: { name: string; categoryId: string; status: string }) => {
     try {
-      await addItem(data.name, data.category as any, data.status as any)
+      await addItem(data.name, data.categoryId, data.status)
       showError('Producto agregado exitosamente', 'success')
       // No necesitamos refetch() porque addItem ya actualiza el estado optimistamente
     } catch (error) {
@@ -126,10 +132,11 @@ export function HomePage() {
               transition={{ delay: 0.2 }}
             >
               {CATEGORIES.map((category, index) => {
-                const categoryItems = itemsByCategory(category.id as any)
-                const completedCount = categoryItems.filter(item => item.completed).length
-                const totalCount = categoryItems.length
-                const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0
+                // Solo calcular estadísticas después de la hidratación para evitar discrepancias
+                const categoryItems = isHydrated ? itemsByCategory(category.id as any) : []
+                const completedCount = isHydrated ? categoryItems.filter(item => item.completed).length : 0
+                const totalCount = isHydrated ? categoryItems.length : 0
+                const progress = isHydrated && totalCount > 0 ? (completedCount / totalCount) * 100 : 0
 
                 return (
                   <motion.div
@@ -145,6 +152,7 @@ export function HomePage() {
                       itemCount={totalCount}
                       completedCount={completedCount}
                       progress={progress}
+                      isLoading={!isHydrated}
                       onClick={() => handleCategoryClick(category.id)}
                     />
                   </motion.div>
@@ -160,39 +168,40 @@ export function HomePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-            > 
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={handleGoToLists}
-              className="gap-2 h-16 text-white"
             >
-              <Settings className="w-4 h-4" />
-              Lista de productos
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => router.push('/admin/categories')}
-              className="gap-2 h-16 text-white"
-            >
-              <ShoppingBasket className="w-4 h-4" />
-              Gestionar Categorías
-            </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleGoToLists}
+                className="cursor-pointer gap-2 h-16 text-white"
+              >
+                <ShoppingBasket className="w-4 h-4" />
+
+                Gestionar productos
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => router.push('/admin/categories')}
+                className="cursor-pointer gap-2 h-16 text-white"
+              >
+                <Settings className="w-4 h-4" />
+                Gestionar Categorías
+              </Button>
               <AddProductModal
                 onAddItem={handleAddItem}
                 isLoading={loading}
                 trigger={
                   <Button
                     size="lg"
-                    className="h-16 flex items-center gap-2 bg-primary hover:bg-primary/90 text-white"
+                    className="cursor-pointer h-16 flex items-center gap-2 bg-primary hover:bg-primary/90 text-white"
                   >
                     <Plus size={20} />
                     Agregar Producto
                   </Button>
                 }
               />
-              
+
             </motion.div>
           </StaggerItem>
 
@@ -207,22 +216,22 @@ export function HomePage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto">
                 <div className="bg-card border border-border rounded-lg p-6">
                   <div className="text-2xl font-bold text-foreground mb-1">
-                    {items.length}
+                    {isHydrated ? items.length : 0}
                   </div>
                   <div className="text-sm text-muted-foreground">
                     Total Productos
                   </div>
                 </div>
-                
+
                 <div className="bg-card border border-border rounded-lg p-6">
                   <div className="text-2xl font-bold text-green-500 mb-1">
-                    {items.filter(item => item.completed).length}
+                    {isHydrated ? items.filter(item => item.completed).length : 0}
                   </div>
                   <div className="text-sm text-muted-foreground">
                     Completados
                   </div>
                 </div>
-                
+
                 <div className="bg-card border border-border rounded-lg p-6">
                   <div className="text-2xl font-bold text-orange-500 mb-1">
                     {CATEGORIES.length}

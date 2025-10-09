@@ -8,7 +8,7 @@ import { ItemList } from '../../organisms'
 import { PageHeader, PageLayout } from '../../templates'
 import { AddProductModal } from '../../modals'
 import { usePageTransitions } from '../../../hooks'
-import { useShoppingItemsSimple } from '../../../hooks'
+import { useUnifiedShopping } from '../../../hooks/use-unified-shopping'
 import { useToast } from '../../../hooks/use-toast'
 import { LoadingOverlay } from '@/components/loading-states'
 import { ErrorBoundary, ShoppingListErrorFallback } from '@/components/error-boundary'
@@ -29,28 +29,32 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
     items,
     loading,
     error,
-    createItem,
+    activeTab,
+    currentItems,
+    completedCount,
+    totalCount,
+    addItem,
     toggleItemCompleted,
     deleteItem,
     moveItemToStatus,
     reorderItems,
-    getItemsByStatus,
-  } = useShoppingItemsSimple()
+    setActiveTab,
+    clearError,
+  } = useUnifiedShopping()
 
   const { showSuccess, showError } = useToast()
   const { StaggerContainer, StaggerItem } = usePageTransitions()
-  const [activeTab, setActiveTab] = useState<'este-mes' | 'proximo-mes'>('este-mes')
 
   // Limpiar errores al cambiar de tab
   useEffect(() => {
     if (error) {
-      // Clear error logic here if needed
+      clearError()
     }
-  }, [activeTab, error])
+  }, [activeTab, error, clearError])
 
   const handleAddItem = async (data: { name: string; category: string; status: string }) => {
     try {
-      await createItem(data.name, data.category, data.status)
+      await addItem(data.name, data.category as any, data.status as any)
       showSuccess('Producto agregado', `${data.name} se agregó a la lista`)
     } catch (error) {
       showError('Error', 'No se pudo agregar el producto')
@@ -60,11 +64,11 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
   const handleToggleCompleted = async (id: string) => {
     try {
       await toggleItemCompleted(id)
-      const item = items.find(item => item.id === id)
+      const item = currentItems.find(item => item.id === id)
       if (item) {
         showSuccess(
           item.completed ? 'Producto completado' : 'Producto pendiente',
-          `${item.name.getValue()} marcado como ${item.completed ? 'completado' : 'pendiente'}`
+          `${item.name} marcado como ${item.completed ? 'completado' : 'pendiente'}`
         )
       }
     } catch (error) {
@@ -74,10 +78,10 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
 
   const handleDeleteItem = async (id: string) => {
     try {
-      const item = items.find(item => item.id === id)
+      const item = currentItems.find(item => item.id === id)
       await deleteItem(id)
       if (item) {
-        showSuccess('Producto eliminado', `${item.name.getValue()} se eliminó de la lista`)
+        showSuccess('Producto eliminado', `${item.name} se eliminó de la lista`)
       }
     } catch (error) {
       showError('Error', 'No se pudo eliminar el producto')
@@ -86,13 +90,13 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
 
   const handleMoveToStatus = async (id: string, newStatus: string) => {
     try {
-      const item = items.find(item => item.id === id)
-      await moveItemToStatus(id, newStatus)
+      const item = currentItems.find(item => item.id === id)
+      await moveItemToStatus(id, newStatus as any)
       if (item) {
         const statusLabels = { 'este-mes': 'Este mes', 'proximo-mes': 'Próximo mes' }
         showSuccess(
           'Producto movido',
-          `${item.name.getValue()} movido a ${statusLabels[newStatus as keyof typeof statusLabels]}`
+          `${item.name} movido a ${statusLabels[newStatus as keyof typeof statusLabels]}`
         )
       }
     } catch (error) {
@@ -102,21 +106,11 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
 
   const handleReorder = async (status: string, sourceIndex: number, destIndex: number) => {
     try {
-      await reorderItems(status, sourceIndex, destIndex)
+      await reorderItems(status as any, sourceIndex, destIndex)
     } catch (error) {
       showError('Error', 'No se pudo reordenar los productos')
     }
   }
-
-  const currentItems = useMemo(() => {
-    return getItemsByStatus(activeTab)
-  }, [getItemsByStatus, activeTab])
-
-  const progress = useMemo(() => {
-    const completed = currentItems.filter(item => item.completed).length
-    const total = currentItems.length
-    return { current: completed, total }
-  }, [currentItems])
 
   const header = (
     <PageHeader
@@ -141,7 +135,7 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
               <ButtonGroup
                 options={STATUS_OPTIONS}
                 value={activeTab}
-                onChange={(value) => setActiveTab(value as 'este-mes' | 'proximo-mes')}
+                onChange={(value) => setActiveTab(value as any)}
                 variant="outline"
                 size="sm"
               />

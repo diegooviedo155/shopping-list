@@ -1,5 +1,6 @@
 export { useShoppingItems } from './use-shopping-items'
 export { useShoppingItems as useShoppingItemsSimple } from './use-shopping-items-simple'
+export { useUnifiedShopping, useUnifiedCategoryView } from './use-unified-shopping'
 export { useDragDrop } from './use-drag-drop'
 export { useToast } from './use-toast'
 export { useFramerMotion } from './use-framer-motion'

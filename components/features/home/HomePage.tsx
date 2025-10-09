@@ -7,7 +7,7 @@ import { Button } from '../../atoms'
 import { CategoryCard } from '../../organisms'
 import { PageLayout } from '../../templates'
 import { usePageTransitions } from '../../../hooks'
-import { useShoppingItemsSimple } from '../../../hooks'
+import { useUnifiedShopping } from '../../../hooks/use-unified-shopping'
 import { useToast } from '../../../hooks/use-toast'
 import { LoadingSpinner } from '@/components/loading-states'
 import { ErrorBoundary } from '@/components/error-boundary'
@@ -56,7 +56,7 @@ const CATEGORIES = [
 
 export function HomePage() {
   const router = useRouter()
-  const { items, loading, error, getItemsByCategory, createItem, refetch } = useShoppingItemsSimple()
+  const { items, loading, error, itemsByCategory, addItem, refetch } = useUnifiedShopping()
   const { showError } = useToast()
   const { StaggerContainer, StaggerItem } = usePageTransitions()
 
@@ -77,9 +77,9 @@ export function HomePage() {
 
   const handleAddItem = async (data: { name: string; category: string; status: string }) => {
     try {
-      await createItem(data.name, data.category, data.status)
+      await addItem(data.name, data.category as any, data.status as any)
       showError('Producto agregado exitosamente', 'success')
-      refetch() // Refrescar la lista
+      // No necesitamos refetch() porque addItem ya actualiza el estado optimistamente
     } catch (error) {
       showError('Error al agregar el producto', 'error')
     }
@@ -126,7 +126,7 @@ export function HomePage() {
               transition={{ delay: 0.2 }}
             >
               {CATEGORIES.map((category, index) => {
-                const categoryItems = getItemsByCategory(category.id)
+                const categoryItems = itemsByCategory(category.id as any)
                 const completedCount = categoryItems.filter(item => item.completed).length
                 const totalCount = categoryItems.length
                 const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0

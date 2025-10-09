@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useMemo } from "react"
 import { Loader2, ShoppingCart } from "lucide-react"
 import { ITEM_STATUS } from "@/lib/constants/item-status"
 import { CATEGORIES, CATEGORY_CONFIG } from "@/lib/constants/categories"
@@ -10,128 +10,62 @@ import { PageLayout, PageHeader } from "./templates"
 import { LoadingOverlay } from "./loading-states"
 import { FloatingActionButton } from "./atoms"
 import { AddProductModal } from "./modals"
+import { useUnifiedCategoryView } from "../hooks/use-unified-shopping"
+import { useToast } from "../hooks/use-toast"
 import type { ShoppingItem } from "@/lib/types/database"
 
 export function CategoryView({ category, onBack }: { category: string; onBack: () => void }) {
-  const [items, setItems] = useState<ShoppingItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [isToggling, setIsToggling] = useState<Record<string, boolean>>({})
-
-  useEffect(() => {
-    const fetchItems = async () => {
-      if (!category) {
-        setError('No se ha especificado una categoría')
-        setLoading(false)
-        return
-      }
-
-      try {
-        setLoading(true)
-        setError(null)
-        
-        const response = await fetch(`/api/items/by-category/${encodeURIComponent(category)}`)
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(errorData.error || 'Error al cargar los productos')
-        }
-        
-        const data = await response.json()
-        
-        if (!Array.isArray(data)) {
-          throw new Error('Formato de respuesta inválido')
-        }
-        
-        setItems(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error desconocido al cargar los productos')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchItems()
-  }, [category])
+  const { getCategoryStats, loading, error, clearError } = useUnifiedCategoryView()
+  const { showSuccess, showError } = useToast()
+  
+  // Obtener estadísticas de la categoría
+  const categoryStats = getCategoryStats(category as any)
+  const items = categoryStats.items
+  
 
   const toggleItemCompleted = async (itemId: string, currentStatus: boolean) => {
     try {
-      setIsToggling(prev => ({ ...prev, [itemId]: true }))
+      // Importar dinámicamente para evitar problemas de hooks
+      const { useUnifiedShopping } = await import('../hooks/use-unified-shopping')
+      const { toggleItemCompleted: toggleItem } = useUnifiedShopping()
       
-      const response = await fetch(`/api/shopping-items/${itemId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ completed: !currentStatus }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Error al actualizar el producto')
-      }
-
-      setItems(prevItems =>
-        prevItems.map(item =>
-          item.id === itemId ? { ...item, completed: !currentStatus } : item
-        )
+      await toggleItem(itemId)
+      showSuccess(
+        currentStatus ? 'Producto pendiente' : 'Producto completado',
+        `Producto marcado como ${currentStatus ? 'pendiente' : 'completado'}`
       )
     } catch (err) {
-      setError('Error al actualizar el producto')
-    } finally {
-      setIsToggling(prev => ({ ...prev, [itemId]: false }))
+      showError('Error', 'No se pudo actualizar el producto')
     }
   }
 
   const handleAddItem = async (data: { name: string; category: string; status: string }) => {
     try {
-      const response = await fetch('/api/shopping-items', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Error al agregar el producto')
-      }
-
-      // Refresh the items list
-      const fetchItems = async () => {
-        try {
-          const response = await fetch(`/api/items/by-category/${encodeURIComponent(category)}`)
-          if (response.ok) {
-            const data = await response.json()
-            if (Array.isArray(data)) {
-              setItems(data)
-            }
-          }
-        } catch (err) {
-          console.error('Error refreshing items:', err)
-        }
-      }
+      // Importar dinámicamente para evitar problemas de hooks
+      const { useUnifiedShopping } = await import('../hooks/use-unified-shopping')
+      const { addItem } = useUnifiedShopping()
       
-      await fetchItems()
+      await addItem(data.name, data.category as any, data.status as any)
+      showSuccess('Producto agregado', `${data.name} se agregó a la categoría`)
     } catch (err) {
-      setError('Error al agregar el producto')
+      showError('Error', 'No se pudo agregar el producto')
     }
   }
 
   const categoryItems = items.sort((a, b) => a.orderIndex - b.orderIndex)
-  const thisMonthItems = categoryItems.filter((item) => item.status === ITEM_STATUS.THIS_MONTH)
-  const nextMonthItems = categoryItems.filter((item) => item.status === ITEM_STATUS.NEXT_MONTH)
+  const thisMonthItems = categoryItems.filter((item) => item.status.getValue() === ITEM_STATUS.THIS_MONTH)
+  const nextMonthItems = categoryItems.filter((item) => item.status.getValue() === ITEM_STATUS.NEXT_MONTH)
 
   const categoryName = (CATEGORY_CONFIG as any)[category]?.name || category
   const categoryColor = `var(--color-${category.toLowerCase()})`
 
-  // Progress tracking for the category
+  // Progress tracking for the category - usar los datos del store
   const progress = useMemo(() => {
-    const completed = categoryItems.filter(item => item.completed).length
-    const total = categoryItems.length
-    return { current: completed, total }
-  }, [categoryItems])
+    return {
+      current: categoryStats.completedCount,
+      total: categoryStats.totalCount
+    }
+  }, [categoryStats.completedCount, categoryStats.totalCount])
 
   const header = (
     <PageHeader
@@ -142,7 +76,7 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
     />
   )
 
-  if (loading && items.length === 0) {
+  if (categoryStats.isLoading) {
     return (
       <PageLayout header={header}>
         <div className="flex items-center justify-center py-12">
@@ -161,7 +95,7 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
         <div className="text-center py-12">
           <p className="text-destructive mb-4">Error: {error}</p>
           <button 
-            onClick={() => window.location.reload()}
+            onClick={() => clearError()}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
           >
             Reintentar
@@ -200,7 +134,7 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
                     item.completed ? 'line-through text-muted-foreground' : 'text-foreground'
                   }`}
                 >
-                  {item.name}
+                  {item.name.getValue()}
                 </label>
               </div>
             ))}
@@ -212,7 +146,7 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
 
   return (
     <PageLayout header={header}>
-      <LoadingOverlay isLoading={loading && categoryItems.length === 0}>
+      <LoadingOverlay isLoading={categoryStats.isLoading}>
         {categoryItems.length === 0 ? (
           <div className="text-center py-12">
             <ShoppingCart className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -229,7 +163,7 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
       {/* Floating Action Button with Modal */}
       <AddProductModal
         onAddItem={handleAddItem}
-        isLoading={loading}
+        isLoading={categoryStats.isLoading}
         trigger={
           <FloatingActionButton
             size="md"

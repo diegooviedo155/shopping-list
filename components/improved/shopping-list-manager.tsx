@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ArrowLeft, Calendar, CalendarDays, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useShoppingItems } from "@/lib/hooks/use-shopping-store"
+import { useUnifiedShopping } from "@/hooks/use-unified-shopping"
 import { useDragDrop } from "@/lib/hooks/use-drag-drop"
 import { useToast } from "@/lib/hooks/use-toast"
 import { AddItemForm } from "@/components/forms/add-item-form"
@@ -37,7 +37,7 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
     setActiveTab,
     setSelectedCategory,
     clearError,
-  } = useShoppingItems()
+  } = useUnifiedShopping()
 
   const { showSuccess, showError } = useToast()
   const dragDropProps = useDragDrop({ onReorderItems: reorderItems, activeTab })

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { OptimisticCheckbox } from "@/components/atoms"
 import { ArrowLeft, Plus, GripVertical, ShoppingCart, Trash2, Calendar, CalendarDays, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useShoppingItems } from "@/lib/hooks/use-shopping-items"
+import { useUnifiedShopping } from "@/hooks/use-unified-shopping"
 import type { Category, ItemStatus } from "@/lib/types/database"
 import { ITEM_STATUS, ITEM_STATUS_LABELS } from "@/lib/constants/item-status"
 import { CATEGORIES, CATEGORY_CONFIG } from "@/lib/constants/categories"
@@ -21,12 +21,26 @@ interface ShoppingListManagerProps {
 // Usamos CATEGORY_CONFIG importado
 
 export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
-  const { items, loading, error, addItem, toggleItemCompleted, deleteItem, moveItemToStatus, reorderItems } =
-    useShoppingItems()
+  const { 
+    items, 
+    loading, 
+    error, 
+    activeTab,
+    selectedCategory,
+    currentItems,
+    completedCount,
+    totalCount,
+    addItem, 
+    toggleItemCompleted, 
+    deleteItem, 
+    moveItemToStatus, 
+    reorderItems,
+    setActiveTab,
+    setSelectedCategory,
+    clearError
+  } = useUnifiedShopping()
 
   const [newItemName, setNewItemName] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState<Category>(CATEGORIES.SUPERMARKET as Category)
-  const [activeTab, setActiveTab] = useState<ItemStatus>(ITEM_STATUS.THIS_MONTH as ItemStatus)
   const [isAdding, setIsAdding] = useState(false)
 
   const handleAddItem = async () => {
@@ -37,6 +51,7 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
       await addItem(newItemName, selectedCategory, activeTab)
       setNewItemName("")
     } catch (err) {
+      // Error handling is done in the store
     } finally {
       setIsAdding(false)
     }
@@ -53,20 +68,7 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
     await reorderItems(activeTab, sourceIndex, destIndex)
   }
 
-  // Filtrar y ordenar los items
-  const currentItems = useMemo(() => {
-    const filtered = items
-      .filter((item) => {
-        const matches = item.status === activeTab
-        return matches
-      })
-      .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0))
-    
-    return filtered
-  }, [items, activeTab])
-
-  const completedCount = currentItems.filter((item) => item.completed).length
-  const totalCount = currentItems.length
+  // currentItems, completedCount y totalCount ya vienen del store unificado
 
 
   if (loading && items.length === 0) {
@@ -86,7 +88,7 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
         <div className="text-center max-w-md mx-auto px-4">
           <p className="text-destructive mb-4">Error al cargar los productos: {error}</p>
           <Button 
-            onClick={() => window.location.reload()}
+            onClick={() => clearError()}
             variant="outline"
             className="mt-4"
           >

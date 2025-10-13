@@ -40,6 +40,7 @@ interface UseUnifiedShoppingReturn {
   updateItem: (id: string, updates: Partial<SimpleShoppingItem>) => Promise<void>
   deleteItem: (id: string) => Promise<void>
   toggleItemCompleted: (id: string) => Promise<void>
+  updateItemCompletedStatus: (id: string, completed: boolean) => Promise<void>
   moveItemToStatus: (id: string, newStatus: ItemStatus) => Promise<void>
   reorderItems: (status: ItemStatus, sourceIndex: number, destIndex: number) => Promise<void>
   
@@ -127,6 +128,7 @@ export function useUnifiedShopping(): UseUnifiedShoppingReturn {
     updateItem: store.updateItem,
     deleteItem: store.deleteItem,
     toggleItemCompleted: store.toggleItemCompleted,
+    updateItemCompletedStatus: store.updateItemCompletedStatus,
     moveItemToStatus: store.moveItemToStatus,
     reorderItems: store.reorderItems,
     

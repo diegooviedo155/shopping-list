@@ -13,6 +13,7 @@ import { LoadingSpinner } from '@/components/loading-states'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { AddProductModal } from '@/components/modals'
 import { cn } from '@/lib/utils'
+import { ITEM_STATUS } from '@/lib/constants/item-status'
 import { Plus, ShoppingCart, Settings, ShoppingBasket } from 'lucide-react'
 
 const CATEGORIES = [
@@ -134,8 +135,10 @@ export function HomePage() {
               {CATEGORIES.map((category, index) => {
                 // Solo calcular estadísticas después de la hidratación para evitar discrepancias
                 const categoryItems = isHydrated ? itemsByCategory(category.id as any) : []
-                const completedCount = isHydrated ? categoryItems.filter(item => item.completed).length : 0
-                const totalCount = isHydrated ? categoryItems.length : 0
+                // Filtrar solo items de "este mes"
+                const thisMonthItems = isHydrated ? categoryItems.filter(item => item.status === ITEM_STATUS.THIS_MONTH) : []
+                const completedCount = isHydrated ? thisMonthItems.filter(item => item.completed).length : 0
+                const totalCount = isHydrated ? thisMonthItems.length : 0
                 const progress = isHydrated && totalCount > 0 ? (completedCount / totalCount) * 100 : 0
 
                 return (

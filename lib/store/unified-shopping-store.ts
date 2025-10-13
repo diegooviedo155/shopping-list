@@ -42,6 +42,7 @@ interface UnifiedShoppingState {
   updateItem: (id: string, updates: Partial<SimpleShoppingItem>) => Promise<void>
   deleteItem: (id: string) => Promise<void>
   toggleItemCompleted: (id: string) => Promise<void>
+  updateItemCompletedStatus: (id: string, completed: boolean) => Promise<void>
   moveItemToStatus: (id: string, newStatus: ItemStatus) => Promise<void>
   reorderItems: (status: ItemStatus, sourceIndex: number, destIndex: number) => Promise<void>
   
@@ -271,6 +272,11 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
 
         const newCompleted = !item.completed;
         await state.updateItem(id, { completed: newCompleted });
+      },
+
+      // Actualizar estado completado directamente (para debounce)
+      updateItemCompletedStatus: async (id: string, completed: boolean) => {
+        await get().updateItem(id, { completed });
       },
 
       // Mover item a otro status con actualización optimista

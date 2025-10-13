@@ -6,7 +6,6 @@ import { motion } from 'framer-motion'
 import { Button } from '../../atoms'
 import { CategoryCard } from '../../organisms'
 import { PageLayout } from '../../templates'
-import { usePageTransitions } from '../../../hooks'
 import { useUnifiedShopping } from '../../../hooks/use-unified-shopping'
 import { useToast } from '../../../hooks/use-toast'
 import { LoadingSpinner } from '@/components/loading-states'
@@ -59,7 +58,6 @@ export function HomePage() {
   const router = useRouter()
   const { items, loading, error, itemsByCategory, addItem, refetch } = useUnifiedShopping()
   const { showError } = useToast()
-  const { StaggerContainer, StaggerItem } = usePageTransitions()
   const [isHydrated, setIsHydrated] = useState(false)
 
   // Manejar hidratación
@@ -106,9 +104,9 @@ export function HomePage() {
   return (
     <ErrorBoundary>
       <PageLayout>
-        <StaggerContainer>
+        <div>
           {/* Header */}
-          <StaggerItem>
+          <div>
             <motion.div
               className="text-center mb-8"
               initial={{ opacity: 0, y: 20 }}
@@ -122,10 +120,10 @@ export function HomePage() {
                 Organiza tus compras por categoría
               </p>
             </motion.div>
-          </StaggerItem>
+          </div>
 
           {/* Categories Grid */}
-          <StaggerItem>
+          <div>
             <motion.div
               className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8"
               initial={{ opacity: 0, y: 20 }}
@@ -162,10 +160,10 @@ export function HomePage() {
                 )
               })}
             </motion.div>
-          </StaggerItem>
+          </div>
 
           {/* Action Buttons */}
-          <StaggerItem>
+          <div>
             <motion.div
               className="flex flex-col sm:flex-row gap-4 justify-center"
               initial={{ opacity: 0, y: 20 }}
@@ -206,10 +204,10 @@ export function HomePage() {
               />
 
             </motion.div>
-          </StaggerItem>
+          </div>
 
           {/* Stats */}
-          <StaggerItem>
+          <div>
             <motion.div
               className="mt-12 text-center"
               initial={{ opacity: 0, y: 20 }}
@@ -245,8 +243,8 @@ export function HomePage() {
                 </div>
               </div>
             </motion.div>
-          </StaggerItem>
-        </StaggerContainer>
+          </div>
+        </div>
       </PageLayout>
     </ErrorBoundary>
   )

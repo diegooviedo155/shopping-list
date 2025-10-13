@@ -1,1 +1,0 @@
-export { IonicSwipeItem } from './IonicSwipeItem'

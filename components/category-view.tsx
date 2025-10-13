@@ -184,7 +184,6 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
                   {isPending && (
                     <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/50 rounded-full text-xs text-muted-foreground">
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      <span className="hidden sm:inline">sincronizando...</span>
                     </div>
                   )}
                 </div>

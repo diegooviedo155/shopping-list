@@ -37,14 +37,3 @@ export function convertItemToFrontend<T extends { status: string }>(item: T): T 
   }
 }
 
-/**
- * Convert an object with status field from frontend to database format
- * @param item - Object with status field in frontend format
- * @returns Object with status field in database format
- */
-export function convertItemToDatabase<T extends { status: string }>(item: T): T {
-  return {
-    ...item,
-    status: toDatabaseStatus(item.status)
-  }
-}

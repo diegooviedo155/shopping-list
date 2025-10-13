@@ -94,8 +94,8 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
   // Set default category when categories load
   useEffect(() => {
     if (categories.length > 0 && !selectedCategory) {
-      setSelectedCategory(categories[0].id)
-      setValue('categoryId', categories[0].id)
+      setSelectedCategory(categories[0].slug)
+      setValue('categoryId', categories[0].slug)
     }
   }, [categories, selectedCategory, setValue])
 
@@ -103,7 +103,7 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
     try {
       await onAddItem({
         ...data,
-        category: selectedCategory,
+        categoryId: selectedCategory,
         status: selectedStatus,
       })
       reset()
@@ -113,7 +113,7 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
     }
   }
 
-  const isFormValid = watchedName?.trim().length >= 2 && !isSubmitting && !isLoading
+  const isFormValid = watchedName?.trim().length >= 2 && selectedCategory && !isSubmitting && !isLoading
 
   const handleCategoryChange = (categoryId: string) => {
     setSelectedCategory(categoryId)
@@ -186,7 +186,7 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
               </SelectTrigger>
               <SelectContent>
                 {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
+                  <SelectItem key={category.id} value={category.slug}>
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{getIconEmoji(category.icon)}</span>
                       <span>{category.name}</span>
@@ -232,11 +232,11 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
               <p className="text-sm font-medium text-muted-foreground">Resumen:</p>
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="gap-1">
-                  {getIconEmoji(categories.find(c => c.id === selectedCategory)?.icon)}
-                  {categories.find(c => c.id === selectedCategory)?.name}
+                  {getIconEmoji(categories.find(c => c.slug === selectedCategory)?.icon)}
+                  {categories.find(c => c.slug === selectedCategory)?.name}
                 </Badge>
                 <Badge variant="outline">
-                  {ITEM_STATUS_LABELS[selectedStatus]}
+                  {selectedStatus === 'este-mes' ? 'Este mes' : 'Próximo mes'}
                 </Badge>
               </div>
             </motion.div>

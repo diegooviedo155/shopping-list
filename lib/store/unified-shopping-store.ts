@@ -228,7 +228,12 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
           set(state => ({
             items: state.items.map(item => 
               item.id === id 
-                ? { ...item, ...updates, updatedAt: new Date() }
+                ? { 
+                    ...item, 
+                    ...updates, 
+                    category: String(updatedItem.category?.slug || updatedItem.categoryId || item.category),
+                    updatedAt: new Date() 
+                  }
                 : item
             )
           }));

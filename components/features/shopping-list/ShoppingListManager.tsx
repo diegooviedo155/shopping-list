@@ -383,9 +383,9 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
                                   />
 
                                   {/* Item content */}
-                                  <div className="flex-1 flex items-center gap-3">
+                                  <div className="flex-1 flex items-center gap-3 capitalize">
                                     <div className={cn(
-                                      "flex-1 text-sm font-medium",
+                                      "flex-1 text-sm font-medium ",
                                       item.completed && "line-through text-muted-foreground opacity-60"
                                     )}>
                                       {item.name}
@@ -411,13 +411,13 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
                                       </>
                                     ) : activeTab === 'este-mes' ? (
                                       <>
-                                        <ArrowRight size={14} />
-                                        Próximo mes
+                                        <ArrowRight size={18} />
+                                        
                                       </>
                                     ) : (
                                       <>
-                                        <ArrowLeft size={14} />
-                                        Este mes
+                                        <ArrowLeft size={18} />
+                                        
                                       </>
                                     )}
                                   </Button>

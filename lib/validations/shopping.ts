@@ -12,8 +12,7 @@ export const createItemSchema = z.object({
     .trim(),
   categoryId: z
     .string()
-    .min(1, 'La categoría es requerida')
-    .cuid('ID de categoría inválido'),
+    .min(1, 'La categoría es requerida'),
   status: z
     .enum(Object.values(ITEM_STATUS) as [string, ...string[]], {
       errorMap: () => ({ message: 'Estado inválido' })

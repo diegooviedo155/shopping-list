@@ -57,6 +57,18 @@ export async function POST(request: NextRequest) {
     // Convert frontend status format (este-mes) to database format (este_mes)
     const dbStatus = toDatabaseStatus(status)
 
+    // Find category by slug to get the actual ID
+    const category = await prisma.category.findUnique({
+      where: { slug: categoryId }
+    })
+
+    if (!category) {
+      return NextResponse.json(
+        { error: "Categoría no encontrada" },
+        { status: 404 }
+      )
+    }
+
     // Get the highest order index for the status
     const maxOrderItem = await prisma.shoppingItem.findFirst({
       where: { status: dbStatus },
@@ -68,11 +80,14 @@ export async function POST(request: NextRequest) {
     const item = await prisma.shoppingItem.create({
       data: {
         name: name.trim(),
-        categoryId: categoryId,
+        categoryId: category.id,
         status: dbStatus,
         completed: false,
         orderIndex,
       },
+      include: {
+        category: true
+      }
     })
 
     // Convert database status format (este_mes) to frontend format (este-mes)

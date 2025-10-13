@@ -26,10 +26,30 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (updateData.status) {
       updateData.status = toDatabaseStatus(updateData.status) as any
     }
+
+    // If category is being updated, convert slug to ID
+    if (updateData.category) {
+      const category = await prisma.category.findUnique({
+        where: { slug: updateData.category }
+      })
+
+      if (!category) {
+        return NextResponse.json(
+          { error: "Categoría no encontrada" },
+          { status: 404 }
+        )
+      }
+
+      updateData.categoryId = category.id
+      delete updateData.category
+    }
     
     const item = await prisma.shoppingItem.update({
       where: { id },
       data: updateData,
+      include: {
+        category: true
+      }
     })
     
     // Convert database status format (este_mes) to frontend format (este-mes)
@@ -70,10 +90,30 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (updateData.status) {
       updateData.status = toDatabaseStatus(updateData.status) as any
     }
+
+    // If category is being updated, convert slug to ID
+    if (updateData.category) {
+      const category = await prisma.category.findUnique({
+        where: { slug: updateData.category }
+      })
+
+      if (!category) {
+        return NextResponse.json(
+          { error: "Categoría no encontrada" },
+          { status: 404 }
+        )
+      }
+
+      updateData.categoryId = category.id
+      delete updateData.category
+    }
     
     const item = await prisma.shoppingItem.update({
       where: { id },
       data: updateData,
+      include: {
+        category: true
+      }
     })
     
     // Convert database status format (este_mes) to frontend format (este-mes)

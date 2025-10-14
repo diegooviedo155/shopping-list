@@ -343,9 +343,9 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
           {/* Items List */}
           <LoadingOverlay isLoading={loading && filteredItems.length === 0}>
             <div className="space-y-4">
-                {/* Select All with Delete Button */}
+                {/* Select All */}
                 {isHydrated && filteredItems.length > 0 && (
-                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2">
                       <Checkbox
                         id="select-all"
@@ -356,19 +356,6 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
                         Seleccionar todos ({filteredItems.length})
                       </label>
                     </div>
-                    
-                    {/* Delete Selected Button */}
-                    {selectedItems.size > 0 && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={handleDeleteSelected}
-                        className="flex items-center gap-2"
-                      >
-                        <Trash2 size={16} />
-                        Eliminar ({selectedItems.size})
-                      </Button>
-                    )}
                   </div>
                 )}
 
@@ -567,6 +554,19 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
             </LoadingOverlay>
         </div>
         
+        {/* Floating Delete Button */}
+        {selectedItems.size > 0 && (
+          <FloatingActionButton
+            size="sm"
+            position="bottom-right"
+            variant="destructive"
+            onClick={handleDeleteSelected}
+            className="mb-20 mr-1.5"
+          >
+            <Trash2 size={16} />
+          </FloatingActionButton>
+        )}
+
         {/* Floating Action Button with Modal */}
         <AddProductModal
           onAddItem={handleAddItem}

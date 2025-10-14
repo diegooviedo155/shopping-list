@@ -30,35 +30,8 @@ import { cn } from '@/lib/utils'
 import { createItemSchema, type CreateItemInput } from '@/lib/validations/shopping'
 import { useCategories } from '@/hooks/use-categories'
 import { ITEM_STATUS, ITEM_STATUS_LABELS } from '@/lib/constants/item-status'
+import { getIconEmoji, formatCategoryForUI } from '@/lib/constants/categories'
 
-// Mapeo de iconos de string a emoji
-const ICON_MAP: Record<string, string> = {
-  'shopping-cart': '🛒',
-  'carrot': '🥕',
-  'beef': '🥩',
-  'bread': '🍞',
-  'pills': '💊',
-  'package': '📦',
-  'apple': '🍎',
-  'milk': '🥛',
-  'fish': '🐟',
-  'chicken': '🐔',
-  'cheese': '🧀',
-  'egg': '🥚',
-  'vegetable': '🥬',
-  'fruit': '🍊',
-  'meat': '🥩',
-  'dairy': '🥛',
-  'bakery': '🍞',
-  'pharmacy': '💊',
-  'other': '📦',
-}
-
-// Función helper para obtener el emoji del icono
-const getIconEmoji = (iconString: string | null | undefined): string => {
-  if (!iconString) return '📦'
-  return ICON_MAP[iconString] || iconString // Si no está en el mapa, usar el string original (por si ya es un emoji)
-}
 
 interface AddProductModalProps {
   onAddItem: (data: CreateItemInput) => Promise<void>
@@ -69,7 +42,7 @@ interface AddProductModalProps {
 export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddProductModalProps) {
   const [open, setOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string>('')
-  const [selectedStatus, setSelectedStatus] = useState<'este-mes' | 'proximo-mes'>('este-mes')
+  const [selectedStatus, setSelectedStatus] = useState<'este_mes' | 'proximo_mes'>('este_mes')
   
   const { categories, loading: categoriesLoading } = useCategories()
 
@@ -85,7 +58,7 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
     defaultValues: {
       name: '',
       categoryId: 'supermercado',
-      status: 'este-mes',
+      status: 'este_mes',
     },
   })
 
@@ -120,7 +93,7 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
     setValue('categoryId', categoryId)
   }
 
-  const handleStatusChange = (status: 'este-mes' | 'proximo-mes') => {
+  const handleStatusChange = (status: 'este_mes' | 'proximo_mes') => {
     setSelectedStatus(status)
     setValue('status', status)
   }
@@ -203,8 +176,8 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
             <div className="grid grid-cols-2 gap-2">
               <Button
                 type="button"
-                variant={selectedStatus === 'este-mes' ? 'default' : 'outline'}
-                onClick={() => handleStatusChange('este-mes')}
+                variant={selectedStatus === 'este_mes' ? 'default' : 'outline'}
+                onClick={() => handleStatusChange('este_mes')}
                 disabled={isSubmitting || isLoading}
                 className="h-11"
               >
@@ -212,8 +185,8 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
               </Button>
               <Button
                 type="button"
-                variant={selectedStatus === 'proximo-mes' ? 'default' : 'outline'}
-                onClick={() => handleStatusChange('proximo-mes')}
+                variant={selectedStatus === 'proximo_mes' ? 'default' : 'outline'}
+                onClick={() => handleStatusChange('proximo_mes')}
                 disabled={isSubmitting || isLoading}
                 className="h-11"
               >
@@ -236,7 +209,7 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
                   {categories.find(c => c.slug === selectedCategory)?.name}
                 </Badge>
                 <Badge variant="outline">
-                  {selectedStatus === 'este-mes' ? 'Este mes' : 'Próximo mes'}
+                  {selectedStatus === 'este_mes' ? 'Este mes' : 'Próximo mes'}
                 </Badge>
               </div>
             </motion.div>

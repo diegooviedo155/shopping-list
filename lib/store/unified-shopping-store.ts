@@ -37,6 +37,7 @@ interface UnifiedShoppingState {
   
   // Acciones
   initialize: () => Promise<void>
+  forceInitialize: () => Promise<void>
   fetchItems: (force?: boolean) => Promise<void>
   addItem: (name: string, category: string, status: string) => Promise<void>
   updateItem: (id: string, updates: Partial<SimpleShoppingItem>) => Promise<void>
@@ -105,6 +106,12 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
         set({ hasInitialized: true });
       },
 
+      // Forzar inicialización (para hidratación)
+      forceInitialize: async () => {
+        set({ hasInitialized: false });
+        await get().initialize();
+      },
+
       // Fetch de items
       fetchItems: async (force = false) => {
         const state = get();
@@ -141,16 +148,23 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
             throw new Error('Invalid response format');
           }
 
-          const formattedItems: SimpleShoppingItem[] = data.map((item: any) => ({
-            id: String(item.id || ''),
-            name: String(item.name || 'Sin nombre'),
-            category: String(item.category?.slug || item.categoryId || 'supermercado'),
-            status: String(item.status || ITEM_STATUS.NEXT_MONTH),
-            completed: Boolean(item.completed),
-            orderIndex: Number(item.orderIndex || item.order_index || 0),
-            createdAt: new Date(item.createdAt || item.created_at || new Date()),
-            updatedAt: new Date(item.updatedAt || item.updated_at || new Date())
-          }));
+          const formattedItems: SimpleShoppingItem[] = data.map((item: any) => {
+          // Status is already in correct format (este_mes)
+          const normalizedStatus = String(item.status || ITEM_STATUS.NEXT_MONTH);
+            
+            return {
+              id: String(item.id || ''),
+              name: String(item.name || 'Sin nombre'),
+              category: String(item.category?.slug || item.categoryId || 'supermercado'),
+              status: normalizedStatus,
+              completed: Boolean(item.completed),
+              orderIndex: Number(item.orderIndex || item.order_index || 0),
+              createdAt: new Date(item.createdAt || item.created_at || new Date()),
+              updatedAt: new Date(item.updatedAt || item.updated_at || new Date())
+            };
+          });
+
+
 
           set({ 
             items: formattedItems, 
@@ -226,8 +240,8 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
 
           const updatedItem = await response.json();
           
-          set(state => ({
-            items: state.items.map(item => 
+          set(state => {
+            const updatedItems = state.items.map(item => 
               item.id === id 
                 ? { 
                     ...item, 
@@ -236,8 +250,11 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
                     updatedAt: new Date() 
                   }
                 : item
-            )
-          }));
+            );
+            
+            
+            return { items: updatedItems };
+          });
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
           set({ error: errorMessage });
@@ -303,7 +320,7 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
           set(state => ({
             items: state.items.map(item => 
               item.id === id 
-                ? { ...item, status: item.status === 'este-mes' ? 'proximo-mes' : 'este-mes', updatedAt: new Date() }
+                ? { ...item, status: item.status === ITEM_STATUS.THIS_MONTH ? ITEM_STATUS.NEXT_MONTH : ITEM_STATUS.THIS_MONTH, updatedAt: new Date() }
                 : item
             )
           }));
@@ -353,15 +370,23 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
 
       // Utilidades
       getItemsByStatus: (status: ItemStatus) => {
-        return get().items
+        const items = get().items
+        const filteredItems = items
           .filter(item => item.status === status)
           .sort((a, b) => a.orderIndex - b.orderIndex);
+        
+        
+        return filteredItems;
       },
 
       getItemsByCategory: (category: Category) => {
-        return get().items
+        const items = get().items
+        const filteredItems = items
           .filter(item => item.category === category)
           .sort((a, b) => a.orderIndex - b.orderIndex);
+        
+        
+        return filteredItems;
       },
 
       getCompletedCount: (status: ItemStatus) => {
@@ -387,8 +412,8 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
         items: state.items,
         activeTab: state.activeTab,
         selectedCategory: state.selectedCategory,
-        lastFetch: state.lastFetch,
-        hasInitialized: state.hasInitialized
+        lastFetch: state.lastFetch
+        // No persistir hasInitialized para evitar problemas de hidratación
       })
     }
   )

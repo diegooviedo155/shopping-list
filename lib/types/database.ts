@@ -1,5 +1,5 @@
-export type Category = "supermercado" | "verduleria" | "carniceria"
-export type ItemStatus = "este-mes" | "proximo-mes"
+export type Category = "supermercado" | "verduleria" | "carniceria" | "farmacia" | "libreria" | "electrodomesticos"
+export type ItemStatus = "este_mes" | "proximo_mes"
 
 export interface ShoppingItem {
   id: string

@@ -17,24 +17,25 @@ import { Calendar, CalendarDays, Trash2, ArrowRight, ArrowLeft, Loader2 } from '
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { ITEM_STATUS } from '@/lib/constants/item-status'
-import { CATEGORIES, CATEGORY_CONFIG } from '@/lib/constants/categories'
+import { getCategoryColor, getIconEmoji } from '@/lib/constants/categories'
 
 interface ShoppingListManagerProps {
   onBack: () => void
 }
 
 const STATUS_OPTIONS = [
-  { value: 'este-mes', label: 'Este mes', icon: <Calendar size={16} /> },
-  { value: 'proximo-mes', label: 'Próximo mes', icon: <CalendarDays size={16} /> },
+  { value: 'este_mes', label: 'Este mes', icon: <Calendar size={16} /> },
+  { value: 'proximo_mes', label: 'Próximo mes', icon: <CalendarDays size={16} /> },
 ]
 
 const CATEGORY_OPTIONS = [
   { value: 'all', label: 'Todas', icon: null },
-  ...Object.entries(CATEGORIES).map(([key, value]) => ({
-    value: value,
-    label: CATEGORY_CONFIG[value as keyof typeof CATEGORY_CONFIG]?.name || value,
-    icon: null
-  }))
+  { value: 'supermercado', label: 'Supermercado', icon: null },
+  { value: 'verduleria', label: 'Verdulería', icon: null },
+  { value: 'carniceria', label: 'Carnicería', icon: null },
+  { value: 'farmacia', label: 'Farmacia', icon: null },
+  { value: 'libreria', label: 'Librería', icon: null },
+  { value: 'electrodomesticos', label: 'Electrodomésticos', icon: null },
 ]
 
 export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
@@ -53,6 +54,7 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
     setActiveTab,
     clearError,
     refetch,
+    forceInitialize,
     isMovingItem,
     store,
   } = useUnifiedShopping()
@@ -62,8 +64,17 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
 
   // Manejar hidratación
   useEffect(() => {
-    setIsHydrated(true)
-  }, [])
+    const initializeStore = async () => {
+      // Forzar inicialización para asegurar que los datos estén actualizados
+      await forceInitialize()
+      // Pequeño delay para asegurar que el estado se actualice
+      setTimeout(() => {
+        setIsHydrated(true)
+      }, 100)
+    }
+    
+    initializeStore()
+  }, [forceInitialize])
 
 
   const { showSuccess, showError } = useToast()
@@ -101,6 +112,8 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
     if (!isHydrated) {
       return []
     }
+    
+    
     if (selectedCategory === 'all') {
       return currentItems
     }
@@ -118,12 +131,12 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
       return acc
     }, {} as Record<string, typeof filteredItems>)
 
-    // Ordenar las categorías según el orden definido en CATEGORIES
-    const categoryOrder = Object.values(CATEGORIES)
+    // Ordenar las categorías según un orden predefinido
+    const categoryOrder = ['supermercado', 'verduleria', 'carniceria', 'farmacia', 'libreria', 'electrodomesticos']
     const result = Object.keys(grouped)
       .sort((a, b) => {
-        const aIndex = categoryOrder.indexOf(a as any)
-        const bIndex = categoryOrder.indexOf(b as any)
+        const aIndex = categoryOrder.indexOf(a)
+        const bIndex = categoryOrder.indexOf(b)
         return aIndex - bIndex
       })
       .map(category => ({
@@ -327,9 +340,8 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
                   ) : (
                     <div className="space-y-6">
                       {itemsByCategory.map(({ category, items }) => {
-                      const categoryConfig = CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG]
-                      const categoryName = categoryConfig?.name || category
-                      const categoryColor = categoryConfig?.color || 'var(--color-supermarket)'
+                      const categoryName = category.charAt(0).toUpperCase() + category.slice(1)
+                      const categoryColor = getCategoryColor(category)
                       
                       return (
                         <div key={category} className="space-y-3">
@@ -398,7 +410,7 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
                                     size="sm"
                                     disabled={isMovingItem(item.id)}
                                     onClick={() => 
-                                      activeTab === 'este-mes' 
+                                      activeTab === 'este_mes' 
                                         ? handleMoveToNextMonth(item.id)
                                         : handleMoveToThisMonth(item.id)
                                     }
@@ -409,7 +421,7 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
                                         <Loader2 size={14} className="animate-spin" />
                                         Moviendo...
                                       </>
-                                    ) : activeTab === 'este-mes' ? (
+                                    ) : activeTab === 'este_mes' ? (
                                       <>
                                         <ArrowRight size={18} />
                                         

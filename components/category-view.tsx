@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from "react"
 import { Loader2, ShoppingCart, Clock } from "lucide-react"
 import { ITEM_STATUS } from "@/lib/constants/item-status"
-import { CATEGORIES, CATEGORY_CONFIG } from "@/lib/constants/categories"
+import { getCategoryColor, getIconEmoji, categorySlugToDatabaseType } from "@/lib/constants/categories"
 import { Checkbox } from "./ui/checkbox"
 import { Badge } from "./ui/badge"
 import { PageLayout, PageHeader } from "./templates"
@@ -16,7 +16,7 @@ import type { ShoppingItem } from "@/lib/types/database"
 
 export function CategoryView({ category, onBack }: { category: string; onBack: () => void }) {
   const { getCategoryStats, loading, error, clearError } = useUnifiedCategoryView()
-  const { updateItemCompletedStatus } = useUnifiedShopping()
+  const { updateItemCompletedStatus, addItem } = useUnifiedShopping()
   const { showSuccess, showError } = useToast()
   
   // Estado local para actualizaciones optimistas
@@ -24,8 +24,9 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
   const [pendingUpdates, setPendingUpdates] = useState<Set<string>>(new Set())
   
   // Obtener estadísticas de la categoría
-  const categoryStats = getCategoryStats(category as any)
+  const categoryStats = getCategoryStats(categorySlugToDatabaseType(category))
   const items = categoryStats.items
+
 
   
 
@@ -79,8 +80,6 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
 
   const handleAddItem = async (data: { name: string; categoryId: string; status: string }) => {
     try {
-      const { addItem } = useUnifiedShopping()
-      
       await addItem(data.name, data.categoryId, data.status)
       showSuccess('Producto agregado', `${data.name} se agregó a la categoría`)
     } catch (err) {
@@ -99,17 +98,17 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
   const categoryItems = items.sort((a, b) => a.orderIndex - b.orderIndex)
   const thisMonthItems = categoryItems.filter((item) => item.status === ITEM_STATUS.THIS_MONTH)
 
-  const categoryName = (CATEGORY_CONFIG as any)[category]?.name || category
-  const categoryColor = `var(--color-${category.toLowerCase()})`
+  const categoryName = category.charAt(0).toUpperCase() + category.slice(1)
+  const categoryColor = getCategoryColor(category)
 
-  // Progress tracking for the category - solo items de este mes
+  // Progress tracking for the category
   const progress = useMemo(() => {
-    const thisMonthCompleted = thisMonthItems.filter(item => getItemStatus(item)).length
+    const completed = items.filter(item => getItemStatus(item)).length
     return {
-      current: thisMonthCompleted,
-      total: thisMonthItems.length
+      current: completed,
+      total: items.length
     }
-  }, [thisMonthItems, optimisticUpdates])
+  }, [items, optimisticUpdates])
 
   const header = (
     <PageHeader
@@ -149,7 +148,7 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
     )
   }
 
-  const renderItemsList = (items: typeof categoryItems, title: string) => (
+  const renderItemsList = (items: ShoppingItem[], title: string) => (
     <>
       {items.length > 0 && (
         <div className="mb-6">
@@ -198,14 +197,14 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
   return (
     <PageLayout header={header}>
       <LoadingOverlay isLoading={categoryStats.isLoading}>
-        {categoryItems.length === 0 ? (
+        {items.length === 0 ? (
           <div className="text-center py-12">
             <ShoppingCart className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">No hay productos en esta categoría</p>
           </div>
         ) : (
           <>
-            {renderItemsList(thisMonthItems, 'Este mes')}
+            {renderItemsList(items, 'Este mes')}
           </>
         )}
       </LoadingOverlay>

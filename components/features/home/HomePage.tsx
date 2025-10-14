@@ -3,67 +3,33 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from 'framer-motion'
-import { Button } from '../../atoms'
+import { Button, CategoryCardSkeleton } from '../../atoms'
 import { CategoryCard } from '../../organisms'
 import { PageLayout } from '../../templates'
 import { useUnifiedShopping } from '../../../hooks/use-unified-shopping'
+import { useCategories } from '../../../hooks/use-categories'
 import { useToast } from '../../../hooks/use-toast'
 import { LoadingSpinner } from '@/components/loading-states'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { AddProductModal } from '@/components/modals'
 import { cn } from '@/lib/utils'
 import { ITEM_STATUS } from '@/lib/constants/item-status'
+import { formatCategoryForUI, categorySlugToDatabaseType } from '@/lib/constants/categories'
 import { Plus, ShoppingCart, Settings, ShoppingBasket } from 'lucide-react'
-
-const CATEGORIES = [
-  {
-    id: 'supermercado',
-    name: 'Supermercado',
-    color: '#10b981',
-    icon: '🛒',
-  },
-  {
-    id: 'verduleria',
-    name: 'Verdulería',
-    color: '#f59e0b',
-    icon: '🥬',
-  },
-  {
-    id: 'carniceria',
-    name: 'Carnicería',
-    color: '#0891b2',
-    icon: '🥩',
-  },
-  {
-    id: 'panaderia',
-    name: 'Panadería',
-    color: '#8b5cf6',
-    icon: '🍞',
-  },
-  {
-    id: 'farmacia',
-    name: 'Farmacia',
-    color: '#10b981',
-    icon: '💊',
-  },
-  {
-    id: 'otro',
-    name: 'Otro',
-    color: '#6b7280',
-    icon: '📦',
-  },
-]
 
 export function HomePage() {
   const router = useRouter()
   const { items, loading, error, itemsByCategory, addItem, refetch } = useUnifiedShopping()
-  const { showError } = useToast()
+  const { categories: apiCategories, loading: categoriesLoading } = useCategories()
+  const { showError, showSuccess } = useToast()
   const [isHydrated, setIsHydrated] = useState(false)
 
   // Manejar hidratación
   useEffect(() => {
     setIsHydrated(true)
   }, [])
+
+
 
   // Manejar errores
   useEffect(() => {
@@ -83,12 +49,12 @@ export function HomePage() {
   const handleAddItem = async (data: { name: string; categoryId: string; status: string }) => {
     try {
       await addItem(data.name, data.categoryId, data.status)
-      showError('Producto agregado exitosamente', 'success')
-      // No necesitamos refetch() porque addItem ya actualiza el estado optimistamente
+      showSuccess('Producto agregado exitosamente', 'El producto se ha agregado a tu lista')
     } catch (error) {
-      showError('Error al agregar el producto', 'error')
+      showError('Error al agregar el producto', 'No se pudo agregar el producto a la lista')
     }
   }
+
 
   if (loading) {
     return (
@@ -130,35 +96,57 @@ export function HomePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              {CATEGORIES.map((category, index) => {
-                // Solo calcular estadísticas después de la hidratación para evitar discrepancias
-                const categoryItems = isHydrated ? itemsByCategory(category.id as any) : []
-                // Filtrar solo items de "este mes"
-                const thisMonthItems = isHydrated ? categoryItems.filter(item => item.status === ITEM_STATUS.THIS_MONTH) : []
-                const completedCount = isHydrated ? thisMonthItems.filter(item => item.completed).length : 0
-                const totalCount = isHydrated ? thisMonthItems.length : 0
-                const progress = isHydrated && totalCount > 0 ? (completedCount / totalCount) * 100 : 0
-
-                return (
+              {categoriesLoading ? (
+                // Mostrar skeletons mientras cargan las categorías
+                Array.from({ length: 6 }).map((_, index) => (
                   <motion.div
-                    key={category.id}
+                    key={`skeleton-${index}`}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.1 * index }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                   >
-                    <CategoryCard
-                      category={category}
-                      itemCount={totalCount}
-                      completedCount={completedCount}
-                      progress={progress}
-                      isLoading={!isHydrated}
-                      onClick={() => handleCategoryClick(category.id)}
-                    />
+                    <CategoryCardSkeleton />
                   </motion.div>
-                )
-              })}
+                ))
+              ) : (
+                apiCategories
+                  .filter(cat => cat.isActive)
+                  .sort((a, b) => a.orderIndex - b.orderIndex)
+                  .map((category, index) => {
+                  const formattedCategory = formatCategoryForUI(category)
+                  // Calcular estadísticas de items por categoría (solo este mes)
+                  const allCategoryItems = itemsByCategory(categorySlugToDatabaseType(category.slug))
+                  const categoryItems = allCategoryItems.filter(item => item.status === ITEM_STATUS.THIS_MONTH)
+                  
+                  const completedCount = categoryItems.filter(item => item.completed).length
+                  const totalCount = categoryItems.length
+                  const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0
+
+
+
+
+
+                  return (
+                    <motion.div
+                      key={category.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.1 * index }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <CategoryCard
+                        category={formattedCategory}
+                        itemCount={totalCount}
+                        completedCount={completedCount}
+                        progress={progress}
+                        isLoading={!isHydrated || categoriesLoading}
+                        onClick={() => handleCategoryClick(category.slug)}
+                      />
+                    </motion.div>
+                  )
+                })
+              )}
             </motion.div>
           </div>
 
@@ -217,16 +205,16 @@ export function HomePage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto">
                 <div className="bg-card border border-border rounded-lg p-6">
                   <div className="text-2xl font-bold text-foreground mb-1">
-                    {isHydrated ? items.length : 0}
+                    {items.filter(item => item.status === ITEM_STATUS.THIS_MONTH).length}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    Total Productos
+                    Este Mes
                   </div>
                 </div>
 
                 <div className="bg-card border border-border rounded-lg p-6">
                   <div className="text-2xl font-bold text-green-500 mb-1">
-                    {isHydrated ? items.filter(item => item.completed).length : 0}
+                    {items.filter(item => item.status === ITEM_STATUS.THIS_MONTH && item.completed).length}
                   </div>
                   <div className="text-sm text-muted-foreground">
                     Completados
@@ -235,7 +223,7 @@ export function HomePage() {
 
                 <div className="bg-card border border-border rounded-lg p-6">
                   <div className="text-2xl font-bold text-orange-500 mb-1">
-                    {CATEGORIES.length}
+                    {isHydrated ? apiCategories.filter(cat => cat.isActive).length : 0}
                   </div>
                   <div className="text-sm text-muted-foreground">
                     Categorías

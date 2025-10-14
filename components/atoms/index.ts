@@ -9,3 +9,9 @@ export type { CardProps } from './Card'
 
 export { FloatingActionButton } from './FloatingActionButton'
 export type { FloatingActionButtonProps } from './FloatingActionButton'
+
+export { Skeleton } from './Skeleton'
+export type { SkeletonProps } from './Skeleton'
+
+export { CategoryCardSkeleton } from './CategoryCardSkeleton'
+export type { CategoryCardSkeletonProps } from './CategoryCardSkeleton'

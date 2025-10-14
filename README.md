@@ -50,7 +50,7 @@ La tabla `shopping_items` incluye:
 - `id`: Identificador único (CUID)
 - `name`: Nombre del producto
 - `category`: Categoría (supermercado, verduleria, carniceria)
-- `status`: Estado (este-mes, proximo-mes)
+- `status`: Estado (este_mes, proximo_mes)
 - `completed`: Si está comprado o no
 - `orderIndex`: Orden para drag and drop
 - `createdAt` / `updatedAt`: Timestamps automáticos

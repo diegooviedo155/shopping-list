@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { validateCreateItem } from "@/lib/validations/shopping"
-import { toDatabaseStatus, toFrontendStatus } from "@/lib/utils/status-conversion"
 
 export async function GET() {
   try {
@@ -18,11 +17,8 @@ export async function GET() {
       },
     })
     
-    // Convert database status format (este_mes) to frontend format (este-mes)
-    const result = items.map(item => ({
-      ...item,
-      status: toFrontendStatus(item.status)
-    }))
+    // Return items with status as-is (already in correct format)
+    const result = items
     
     return NextResponse.json(result)
   } catch (error) {
@@ -54,8 +50,8 @@ export async function POST(request: NextRequest) {
 
     const { name, categoryId, status } = validation.data
 
-    // Convert frontend status format (este-mes) to database format (este_mes)
-    const dbStatus = toDatabaseStatus(status)
+    // Status is already in correct format (este_mes)
+    const dbStatus = status
 
     // Find category by slug to get the actual ID
     const category = await prisma.category.findUnique({
@@ -90,11 +86,8 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Convert database status format (este_mes) to frontend format (este-mes)
-    const result = {
-      ...item,
-      status: toFrontendStatus(item.status)
-    }
+    // Return item with status as-is (already in correct format)
+    const result = item
 
     return NextResponse.json(result)
   } catch (error) {

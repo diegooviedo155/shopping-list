@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { validateReorderItems } from "@/lib/validations/shopping"
-import { toDatabaseStatus } from "@/lib/utils/status-conversion"
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,8 +23,8 @@ export async function POST(request: NextRequest) {
 
     const { status, sourceIndex, destIndex } = validation.data
 
-    // Convert frontend status format (este-mes) to database format (este_mes)
-    const dbStatus = toDatabaseStatus(status)
+    // Status is already in correct format (este_mes)
+    const dbStatus = status
 
     // Get all items for the status, ordered by orderIndex
     const items = await prisma.shoppingItem.findMany({

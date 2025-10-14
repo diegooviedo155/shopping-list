@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import { useUnifiedShoppingStore } from '@/lib/store/unified-shopping-store'
 import type { Category, ItemStatus } from '@/lib/types/database'
+import { ITEM_STATUS } from '@/lib/constants/item-status'
 // Tipos simplificados
 interface SimpleShoppingItem {
   id: string
@@ -103,6 +104,10 @@ export function useUnifiedShopping(): UseUnifiedShoppingReturn {
     return store.initialize()
   }, [store.initialize])
 
+  const forceInitialize = useCallback(() => {
+    return store.forceInitialize()
+  }, [store.forceInitialize])
+
   return {
     // Estado principal
     items: store.items,
@@ -140,6 +145,7 @@ export function useUnifiedShopping(): UseUnifiedShoppingReturn {
     // Utilidades
     refetch,
     initialize,
+    forceInitialize,
     isMovingItem: store.isMovingItem,
     store,
   }
@@ -157,7 +163,9 @@ export function useUnifiedCategoryView() {
   }, [store.hasInitialized, store.initialize])
 
   const getCategoryStats = useCallback((category: Category) => {
-    const categoryItems = store.getItemsByCategory(category)
+    // Solo obtener items de "este_mes" para la vista de categoría
+    const allCategoryItems = store.getItemsByCategory(category)
+    const categoryItems = allCategoryItems.filter(item => item.status === ITEM_STATUS.THIS_MONTH)
     const completedCount = categoryItems.filter(item => item.completed).length
     const totalCount = categoryItems.length
     

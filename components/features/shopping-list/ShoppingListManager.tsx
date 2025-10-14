@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Button, FloatingActionButton, SearchInput } from '../../atoms'
 import { ButtonGroup } from '../../molecules'
 import { PageHeader, PageLayout } from '../../templates'
-import { AddProductModal } from '../../modals'
+import { AddProductModal, EditProductModal } from '../../modals'
 import { DeleteConfirmationModal } from '../../modals/DeleteConfirmationModal'
 import { useUnifiedShopping } from '../../../hooks/use-unified-shopping'
 import { useToast } from '../../../hooks/use-toast'
@@ -47,6 +47,7 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
     completedCount,
     totalCount,
     addItem,
+    updateItemName,
     toggleItemCompleted,
     deleteItem,
     moveItemToStatus,
@@ -86,6 +87,13 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
   
   // Estados para filtros y selección
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  
+  // Estados para edición
+  const [editingItem, setEditingItem] = useState<{ id: string; name: string } | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  
+  // Estado para efecto de presión larga
+  const [pressedItemId, setPressedItemId] = useState<string | null>(null)
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [hasAnimated, setHasAnimated] = useState(false)
@@ -116,10 +124,10 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
     if (!isHydrated) {
       return []
     }
-    
+
     // Obtener items con búsqueda aplicada
     const searchedItems = itemsByStatusAndSearch(activeTab, searchQuery)
-    
+
     if (selectedCategory === 'all') {
       return searchedItems
     }
@@ -228,6 +236,30 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
       showError('Error', 'No se pudieron eliminar los productos')
     }
   }, [selectedItems, currentItems, deleteItem, showSuccess, showError])
+
+  // Manejar edición de item
+  const handleEditItem = useCallback((item: { id: string; name: string }) => {
+    setEditingItem(item)
+    setIsEditModalOpen(true)
+  }, [])
+
+  // Guardar cambios de edición
+  const handleSaveEdit = useCallback(async (data: { name: string }) => {
+    if (!editingItem) return
+
+    try {
+      await updateItemName(editingItem.id, data.name)
+      showSuccess('Producto actualizado', 'El nombre del producto se ha actualizado correctamente')
+    } catch (error) {
+      showError('Error', 'No se pudo actualizar el producto')
+    }
+  }, [editingItem, updateItemName, showSuccess, showError])
+
+  // Cerrar modal de edición
+  const handleCloseEdit = useCallback(() => {
+    setIsEditModalOpen(false)
+    setEditingItem(null)
+  }, [])
 
   // Mover item al mes que viene (memoizado)
   const handleMoveToNextMonth = useCallback(async (id: string) => {
@@ -409,9 +441,71 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
                               return (
                                 <div
                                   key={item.id}
+                                  onMouseDown={(e) => {
+                                    // Activar efecto visual de presión
+                                    setPressedItemId(item.id)
+                                    
+                                    // Iniciar temporizador para presión larga
+                                    const timeout = setTimeout(() => {
+                                      handleEditItem({ id: item.id, name: item.name })
+                                      setPressedItemId(null) // Limpiar estado al abrir modal
+                                    }, 2000)
+                                    
+                                    // Guardar referencia para poder cancelar
+                                    const element = e.currentTarget
+                                    element.dataset.timeout = timeout.toString()
+                                  }}
+                                  onMouseUp={(e) => {
+                                    // Cancelar temporizador si se suelta antes de 2 segundos
+                                    const element = e.currentTarget
+                                    const timeout = element.dataset.timeout
+                                    if (timeout) {
+                                      clearTimeout(parseInt(timeout))
+                                      delete element.dataset.timeout
+                                    }
+                                    // Limpiar efecto visual
+                                    setPressedItemId(null)
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    // Cancelar temporizador si el mouse sale del elemento
+                                    const element = e.currentTarget
+                                    const timeout = element.dataset.timeout
+                                    if (timeout) {
+                                      clearTimeout(parseInt(timeout))
+                                      delete element.dataset.timeout
+                                    }
+                                    // Limpiar efecto visual
+                                    setPressedItemId(null)
+                                  }}
+                                  onTouchStart={(e) => {
+                                    // Activar efecto visual de presión
+                                    setPressedItemId(item.id)
+                                    
+                                    // Iniciar temporizador para presión larga en touch
+                                    const timeout = setTimeout(() => {
+                                      handleEditItem({ id: item.id, name: item.name })
+                                      setPressedItemId(null) // Limpiar estado al abrir modal
+                                    }, 2000)
+                                    
+                                    // Guardar referencia para poder cancelar
+                                    const element = e.currentTarget
+                                    element.dataset.timeout = timeout.toString()
+                                  }}
+                                  onTouchEnd={(e) => {
+                                    // Cancelar temporizador si se suelta antes de 2 segundos
+                                    const element = e.currentTarget
+                                    const timeout = element.dataset.timeout
+                                    if (timeout) {
+                                      clearTimeout(parseInt(timeout))
+                                      delete element.dataset.timeout
+                                    }
+                                    // Limpiar efecto visual
+                                    setPressedItemId(null)
+                                  }}
                                   className={cn(
-                                    "flex items-center gap-3 p-4 bg-card border rounded-lg hover:bg-accent/50 transition-colors",
-                                    item.completed && "opacity-60"
+                                    "flex items-center gap-3 p-4 bg-card border rounded-lg hover:bg-accent/50 transition-all duration-200 cursor-pointer",
+                                    item.completed && "opacity-60",
+                                    pressedItemId === item.id && "scale-95 shadow-inner bg-accent/30 border-accent"
                                   )}
                                 >
                                   {/* Checkbox for selection */}
@@ -495,6 +589,15 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
             const item = currentItems.find(item => item.id === id)
             return item?.name || 'Producto'
           })}
+          isLoading={loading}
+        />
+
+        {/* Edit Product Modal */}
+        <EditProductModal
+          isOpen={isEditModalOpen}
+          onClose={handleCloseEdit}
+          onSave={handleSaveEdit}
+          initialName={editingItem?.name || ''}
           isLoading={loading}
         />
       </PageLayout>

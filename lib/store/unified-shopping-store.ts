@@ -42,6 +42,7 @@ interface UnifiedShoppingState {
   fetchItems: (force?: boolean) => Promise<void>
   addItem: (name: string, category: string, status: string) => Promise<void>
   updateItem: (id: string, updates: Partial<SimpleShoppingItem>) => Promise<void>
+  updateItemName: (id: string, name: string) => Promise<void>
   deleteItem: (id: string) => Promise<void>
   toggleItemCompleted: (id: string) => Promise<void>
   updateItemCompletedStatus: (id: string, completed: boolean) => Promise<void>
@@ -264,6 +265,55 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
           set({ error: errorMessage });
+        }
+      },
+
+      // Actualizar solo el nombre del item
+      updateItemName: async (id: string, name: string) => {
+        // Actualización optimista
+        const previousItems = get().items;
+        
+        set(state => ({
+          items: state.items.map(item => 
+            item.id === id 
+              ? { ...item, name: name.trim() }
+              : item
+          )
+        }));
+
+        try {
+          const response = await fetch(`${API_BASE}/${id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name: name.trim() })
+          });
+
+          if (!response.ok) {
+            // Revertir cambios si falla
+            set({ items: previousItems });
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+          }
+
+          const updatedItem = await response.json();
+          
+          // Actualizar con los datos del servidor
+          set(state => ({
+            items: state.items.map(item => 
+              item.id === id 
+                ? { 
+                    ...item, 
+                    name: String(updatedItem.name),
+                    updatedAt: new Date() 
+                  }
+                : item
+            )
+          }));
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+          set({ error: errorMessage });
+          throw error;
         }
       },
 

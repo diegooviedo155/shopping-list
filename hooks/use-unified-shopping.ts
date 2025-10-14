@@ -42,6 +42,7 @@ interface UseUnifiedShoppingReturn {
   // Acciones de items
   addItem: (name: string, category: string, status: string) => Promise<void>
   updateItem: (id: string, updates: Partial<SimpleShoppingItem>) => Promise<void>
+  updateItemName: (id: string, name: string) => Promise<void>
   deleteItem: (id: string) => Promise<void>
   toggleItemCompleted: (id: string) => Promise<void>
   updateItemCompletedStatus: (id: string, completed: boolean) => Promise<void>
@@ -154,10 +155,11 @@ export function useUnifiedShopping(): UseUnifiedShoppingReturn {
     completedCount,
     totalCount,
     
-    // Acciones de items
-    addItem: store.addItem,
-    updateItem: store.updateItem,
-    deleteItem: store.deleteItem,
+  // Acciones de items
+  addItem: store.addItem,
+  updateItem: store.updateItem,
+  updateItemName: store.updateItemName,
+  deleteItem: store.deleteItem,
     toggleItemCompleted: store.toggleItemCompleted,
     updateItemCompletedStatus: store.updateItemCompletedStatus,
     moveItemToStatus: store.moveItemToStatus,

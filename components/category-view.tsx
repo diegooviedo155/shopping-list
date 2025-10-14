@@ -95,8 +95,8 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
     return item.completed
   }
 
-  const categoryItems = items.sort((a, b) => a.orderIndex - b.orderIndex)
-  const thisMonthItems = categoryItems.filter((item) => item.status === ITEM_STATUS.THIS_MONTH)
+  // Los items ya vienen ordenados desde el hook (completados al final)
+  const categoryItems = items
 
   const categoryName = category.charAt(0).toUpperCase() + category.slice(1)
   const categoryColor = getCategoryColor(category)

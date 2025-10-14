@@ -165,7 +165,18 @@ export function useUnifiedCategoryView() {
   const getCategoryStats = useCallback((category: Category) => {
     // Solo obtener items de "este_mes" para la vista de categoría
     const allCategoryItems = store.getItemsByCategory(category)
-    const categoryItems = allCategoryItems.filter(item => item.status === ITEM_STATUS.THIS_MONTH)
+    const categoryItems = allCategoryItems
+      .filter(item => item.status === ITEM_STATUS.THIS_MONTH)
+      .sort((a, b) => {
+        // Primero los no completados, luego los completados
+        if (a.completed === b.completed) {
+          // Si ambos tienen el mismo estado de completado, mantener orden por orderIndex
+          return a.orderIndex - b.orderIndex
+        }
+        // Los no completados van primero (false < true)
+        return a.completed ? 1 : -1
+      })
+    
     const completedCount = categoryItems.filter(item => item.completed).length
     const totalCount = categoryItems.length
     

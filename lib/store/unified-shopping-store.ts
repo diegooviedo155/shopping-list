@@ -270,13 +270,17 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
 
       // Actualizar solo el nombre del item
       updateItemName: async (id: string, name: string) => {
-        // Actualización optimista
-        const previousItems = get().items;
+        // Obtener el estado actual del item
+        const currentItem = get().items.find(item => item.id === id);
+        if (!currentItem) return;
         
+        const oldName = currentItem.name;
+        
+        // Actualización optimista - cambiar inmediatamente en el UI
         set(state => ({
           items: state.items.map(item => 
             item.id === id 
-              ? { ...item, name: name.trim() }
+              ? { ...item, name: name.trim(), updatedAt: new Date() }
               : item
           )
         }));
@@ -291,8 +295,6 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
           });
 
           if (!response.ok) {
-            // Revertir cambios si falla
-            set({ items: previousItems });
             throw new Error(`Error ${response.status}: ${response.statusText}`);
           }
 
@@ -311,6 +313,14 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
             )
           }));
         } catch (error) {
+          // Si falla, revertir el cambio
+          set(state => ({
+            items: state.items.map(item => 
+              item.id === id 
+                ? { ...item, name: oldName, updatedAt: new Date() }
+                : item
+            )
+          }));
           const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
           set({ error: errorMessage });
           throw error;
@@ -354,29 +364,63 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
 
       // Mover item a otro status con actualización optimista
       moveItemToStatus: async (id: string, newStatus: ItemStatus) => {
+        // Obtener el estado actual del item
+        const currentItem = get().items.find(item => item.id === id);
+        if (!currentItem) return;
+        
+        const oldStatus = currentItem.status;
+        
         // Marcar como moviendo
         set(state => ({
           movingItems: new Set([...state.movingItems, id])
         }));
         
         // Actualización optimista - cambiar inmediatamente en el UI
-        set(state => ({
-          items: state.items.map(item => 
+        set(state => {
+          const updatedItems = state.items.map(item => 
             item.id === id 
               ? { ...item, status: newStatus, updatedAt: new Date() }
               : item
-          )
-        }));
+          );
+          console.log('moveItemToStatus: Updated item', id, 'from', oldStatus, 'to', newStatus);
+          console.log('Updated items:', updatedItems.length);
+          return { items: updatedItems };
+        });
         
         // Luego hacer la petición a la API
         try {
-          await get().updateItem(id, { status: newStatus });
+          const response = await fetch(`${API_BASE}/${id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: newStatus })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+          }
+
+          const updatedItem = await response.json();
+          
+          // Actualizar con los datos del servidor
+          set(state => ({
+            items: state.items.map(item => 
+              item.id === id 
+                ? { 
+                    ...item, 
+                    status: String(updatedItem.status),
+                    updatedAt: new Date() 
+                  }
+                : item
+            )
+          }));
         } catch (error) {
           // Si falla, revertir el cambio
           set(state => ({
             items: state.items.map(item => 
               item.id === id 
-                ? { ...item, status: item.status === ITEM_STATUS.THIS_MONTH ? ITEM_STATUS.NEXT_MONTH : ITEM_STATUS.THIS_MONTH, updatedAt: new Date() }
+                ? { ...item, status: oldStatus, updatedAt: new Date() }
                 : item
             )
           }));

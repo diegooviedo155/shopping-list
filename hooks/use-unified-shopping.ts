@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
 import { useUnifiedShoppingStore } from '@/lib/store/unified-shopping-store'
 import type { Category, ItemStatus } from '@/lib/types/database'
 import { ITEM_STATUS } from '@/lib/constants/item-status'
@@ -76,23 +76,19 @@ export function useUnifiedShopping(): UseUnifiedShoppingReturn {
     }
   }, [store.hasInitialized])
 
-  // Removed cleanAndUpdateItems useEffect - not needed with simplified store
-
-  // Removed problematic force fetch useEffect to prevent infinite loops
-
-  // Items filtrados memoizados
+  // Items filtrados memoizados - forzar re-render cuando cambien los items
   const currentItems = useMemo(() => {
     return store.getItemsByStatus(store.activeTab)
-  }, [store.items, store.activeTab])
+  }, [store.items, store.activeTab, store.getItemsByStatus])
 
   // Contadores memoizados
   const completedCount = useMemo(() => {
     return store.getCompletedCount(store.activeTab)
-  }, [store.items, store.activeTab])
+  }, [store.items, store.activeTab, store.getCompletedCount])
 
   const totalCount = useMemo(() => {
     return store.getTotalCount(store.activeTab)
-  }, [store.items, store.activeTab])
+  }, [store.items, store.activeTab, store.getTotalCount])
 
   // Funciones wrapper memoizadas
   const itemsByCategory = useCallback((category: Category) => {

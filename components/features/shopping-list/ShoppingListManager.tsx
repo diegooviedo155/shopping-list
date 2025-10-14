@@ -13,9 +13,9 @@ import { LoadingOverlay } from '@/components/loading-states'
 import { ErrorBoundary, ShoppingListErrorFallback } from '@/components/error-boundary'
 import { cn } from '@/lib/utils'
 import { Calendar, CalendarDays, Trash2, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react'
+import { ITEM_STATUS } from '@/lib/constants/item-status'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
-import { ITEM_STATUS } from '@/lib/constants/item-status'
 import { getCategoryColor, getIconEmoji } from '@/lib/constants/categories'
 
 interface ShoppingListManagerProps {
@@ -94,6 +94,9 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
   
   // Estado para efecto de presión larga
   const [pressedItemId, setPressedItemId] = useState<string | null>(null)
+  
+  // Estado para forzar re-render
+  const [forceUpdate, setForceUpdate] = useState(0)
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [hasAnimated, setHasAnimated] = useState(false)
@@ -104,6 +107,11 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
       clearError()
     }
   }, [activeTab, error, clearError])
+
+  // Forzar re-render cuando cambien los items
+  useEffect(() => {
+    setForceUpdate(prev => prev + 1)
+  }, [currentItems])
 
   // Limpiar selección al cambiar de tab
   useEffect(() => {
@@ -127,12 +135,13 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
 
     // Obtener items con búsqueda aplicada
     const searchedItems = itemsByStatusAndSearch(activeTab, searchQuery)
+    console.log('filteredItems recalculated:', searchedItems.length, 'items for tab:', activeTab)
 
     if (selectedCategory === 'all') {
       return searchedItems
     }
     return searchedItems.filter(item => item.category === selectedCategory)
-  }, [itemsByStatusAndSearch, activeTab, searchQuery, selectedCategory, isHydrated])
+  }, [itemsByStatusAndSearch, activeTab, searchQuery, selectedCategory, isHydrated, forceUpdate])
 
   // Agrupar items por categoría para mostrar subtítulos
   const itemsByCategory = useMemo(() => {
@@ -260,6 +269,60 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
     setIsEditModalOpen(false)
     setEditingItem(null)
   }, [])
+
+  // Mover items seleccionados al próximo mes
+  const handleMoveSelectedToNextMonth = useCallback(async () => {
+    if (selectedItems.size === 0) return
+
+    try {
+      const itemsToMove = Array.from(selectedItems)
+      const itemNames = itemsToMove.map(id => {
+        const item = currentItems.find(item => item.id === id)
+        return item?.name || 'Producto'
+      })
+
+      // Mover todos los items seleccionados
+      await Promise.all(itemsToMove.map(id => moveItemToStatus(id, ITEM_STATUS.NEXT_MONTH)))
+      
+      // Forzar re-render manual
+      setForceUpdate(prev => prev + 1)
+      
+      setSelectedItems(new Set())
+      showSuccess(
+        'Productos movidos',
+        `${itemNames.length} producto(s) movido(s) al próximo mes`
+      )
+    } catch (error) {
+      showError('Error', 'No se pudieron mover los productos')
+    }
+  }, [selectedItems, currentItems, moveItemToStatus, showSuccess, showError])
+
+  // Mover items seleccionados a este mes
+  const handleMoveSelectedToThisMonth = useCallback(async () => {
+    if (selectedItems.size === 0) return
+
+    try {
+      const itemsToMove = Array.from(selectedItems)
+      const itemNames = itemsToMove.map(id => {
+        const item = currentItems.find(item => item.id === id)
+        return item?.name || 'Producto'
+      })
+
+      // Mover todos los items seleccionados
+      await Promise.all(itemsToMove.map(id => moveItemToStatus(id, ITEM_STATUS.THIS_MONTH)))
+      
+      // Forzar re-render manual
+      setForceUpdate(prev => prev + 1)
+      
+      setSelectedItems(new Set())
+      showSuccess(
+        'Productos movidos',
+        `${itemNames.length} producto(s) movido(s) a este mes`
+      )
+    } catch (error) {
+      showError('Error', 'No se pudieron mover los productos')
+    }
+  }, [selectedItems, currentItems, moveItemToStatus, showSuccess, showError])
 
   // Mover item al mes que viene (memoizado)
   const handleMoveToNextMonth = useCallback(async (id: string) => {
@@ -554,17 +617,46 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
             </LoadingOverlay>
         </div>
         
-        {/* Floating Delete Button */}
+        {/* Floating Action Buttons for Selected Items */}
         {selectedItems.size > 0 && (
-          <FloatingActionButton
-            size="sm"
-            position="bottom-right"
-            variant="destructive"
-            onClick={handleDeleteSelected}
-            className="mb-20 mr-1.5"
-          >
-            <Trash2 size={16} />
-          </FloatingActionButton>
+          <>
+            {/* Move to Next Month Button */}
+            {activeTab === ITEM_STATUS.THIS_MONTH && (
+              <FloatingActionButton
+                size="sm"
+                position="bottom-right"
+                variant="default"
+                onClick={() => handleMoveSelectedToNextMonth()}
+                className="mb-36 mr-1.5"
+              >
+                <ArrowRight size={16} />
+              </FloatingActionButton>
+            )}
+
+            {/* Move to This Month Button */}
+            {activeTab === ITEM_STATUS.NEXT_MONTH && (
+              <FloatingActionButton
+                size="sm"
+                position="bottom-right"
+                variant="default"
+                onClick={() => handleMoveSelectedToThisMonth()}
+                className="mb-36 mr-1.5"
+              >
+                <ArrowLeft size={16} />
+              </FloatingActionButton>
+            )}
+
+            {/* Delete Button */}
+            <FloatingActionButton
+              size="sm"
+              position="bottom-right"
+              variant="destructive"
+              onClick={handleDeleteSelected}
+              className="mb-20 mr-1.5"
+            >
+              <Trash2 size={16} />
+            </FloatingActionButton>
+          </>
         )}
 
         {/* Floating Action Button with Modal */}

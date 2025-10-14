@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { convertItemToFrontend } from '@/lib/utils/status-conversion'
 
 interface Context {
   params: Promise<{
@@ -46,10 +45,8 @@ export async function GET(
       orderBy: { orderIndex: 'asc' }
     });
 
-    // Convert database status format to frontend format
-    const convertedItems = items.map(item => convertItemToFrontend(item));
-
-    return NextResponse.json(convertedItems);
+    // Return items directly (status format is already consistent)
+    return NextResponse.json(items);
   } catch (error) {
     console.error('Error fetching items by category:', error);
     return NextResponse.json(

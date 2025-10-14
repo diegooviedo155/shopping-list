@@ -2,12 +2,11 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { motion, AnimatePresence } from 'framer-motion'
-import { Button, FloatingActionButton } from '../../atoms'
+import { Button, FloatingActionButton, SearchInput } from '../../atoms'
 import { ButtonGroup } from '../../molecules'
 import { PageHeader, PageLayout } from '../../templates'
 import { AddProductModal } from '../../modals'
 import { DeleteConfirmationModal } from '../../modals/DeleteConfirmationModal'
-import { usePageTransitions } from '../../../hooks'
 import { useUnifiedShopping } from '../../../hooks/use-unified-shopping'
 import { useToast } from '../../../hooks/use-toast'
 import { LoadingOverlay } from '@/components/loading-states'
@@ -57,6 +56,11 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
     forceInitialize,
     isMovingItem,
     store,
+    // Funciones de búsqueda
+    itemsByStatusAndSearch,
+    setSearchQuery,
+    clearSearch,
+    searchQuery,
   } = useUnifiedShopping()
 
   // Estado para manejar hidratación
@@ -107,18 +111,20 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
     return () => clearTimeout(timer)
   }, [])
 
-  // Filtrar items por categoría (solo después de hidratación)
+  // Filtrar items por categoría y búsqueda (solo después de hidratación)
   const filteredItems = useMemo(() => {
     if (!isHydrated) {
       return []
     }
     
+    // Obtener items con búsqueda aplicada
+    const searchedItems = itemsByStatusAndSearch(activeTab, searchQuery)
     
     if (selectedCategory === 'all') {
-      return currentItems
+      return searchedItems
     }
-    return currentItems.filter(item => item.category === selectedCategory)
-  }, [currentItems, selectedCategory, isHydrated])
+    return searchedItems.filter(item => item.category === selectedCategory)
+  }, [itemsByStatusAndSearch, activeTab, searchQuery, selectedCategory, isHydrated])
 
   // Agrupar items por categoría para mostrar subtítulos
   const itemsByCategory = useMemo(() => {
@@ -291,6 +297,17 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
             </div>
           </div>
 
+          {/* Search Input */}
+          <div className="mb-6">
+            <SearchInput
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onClear={clearSearch}
+              placeholder="Buscar productos..."
+              className="w-full"
+            />
+          </div>
+
           {/* Items List */}
           <LoadingOverlay isLoading={loading && filteredItems.length === 0}>
             <div className="space-y-4">
@@ -331,11 +348,21 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
                 ) : filteredItems.length === 0 ? (
                     <div className="text-center py-12">
                       <p className="text-muted-foreground">
-                        {selectedCategory === 'all' 
+                        {searchQuery ? (
+                          `No se encontraron productos que coincidan con "${searchQuery}"`
+                        ) : selectedCategory === 'all' 
                           ? 'No hay productos en esta lista' 
                           : 'No hay productos en esta categoría'
                         }
                       </p>
+                      {searchQuery && (
+                        <button
+                          onClick={clearSearch}
+                          className="mt-2 text-sm text-primary hover:underline"
+                        >
+                          Limpiar búsqueda
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-6">

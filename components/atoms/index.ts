@@ -15,3 +15,6 @@ export type { SkeletonProps } from './Skeleton'
 
 export { CategoryCardSkeleton } from './CategoryCardSkeleton'
 export type { CategoryCardSkeletonProps } from './CategoryCardSkeleton'
+
+export { SearchInput } from './SearchInput'
+export type { SearchInputProps } from './SearchInput'

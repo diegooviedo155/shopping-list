@@ -8,14 +8,14 @@ import { Checkbox } from "./ui/checkbox"
 import { Badge } from "./ui/badge"
 import { PageLayout, PageHeader } from "./templates"
 import { LoadingOverlay } from "./loading-states"
-import { FloatingActionButton } from "./atoms"
+import { FloatingActionButton, SearchInput } from "./atoms"
 import { AddProductModal } from "./modals"
 import { useUnifiedCategoryView, useUnifiedShopping } from "../hooks/use-unified-shopping"
 import { useToast } from "../hooks/use-toast"
 import type { ShoppingItem } from "@/lib/types/database"
 
 export function CategoryView({ category, onBack }: { category: string; onBack: () => void }) {
-  const { getCategoryStats, loading, error, clearError } = useUnifiedCategoryView()
+  const { getCategoryStats, loading, error, clearError, setSearchQuery, clearSearch, searchQuery } = useUnifiedCategoryView()
   const { updateItemCompletedStatus, addItem } = useUnifiedShopping()
   const { showSuccess, showError } = useToast()
   
@@ -23,8 +23,8 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
   const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, boolean>>({})
   const [pendingUpdates, setPendingUpdates] = useState<Set<string>>(new Set())
   
-  // Obtener estadísticas de la categoría
-  const categoryStats = getCategoryStats(categorySlugToDatabaseType(category))
+  // Obtener estadísticas de la categoría con búsqueda
+  const categoryStats = getCategoryStats(categorySlugToDatabaseType(category), searchQuery)
   const items = categoryStats.items
 
 
@@ -148,7 +148,7 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
     )
   }
 
-  const renderItemsList = (items: ShoppingItem[], title: string) => (
+  const renderItemsList = (items: any[], title: string) => (
     <>
       {items.length > 0 && (
         <div className="mb-6">
@@ -197,10 +197,31 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
   return (
     <PageLayout header={header}>
       <LoadingOverlay isLoading={categoryStats.isLoading}>
+        {/* Buscador */}
+        <div className="mb-6">
+          <SearchInput
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onClear={clearSearch}
+            placeholder={`Buscar en ${categoryName}...`}
+            className="w-full"
+          />
+        </div>
+
         {items.length === 0 ? (
           <div className="text-center py-12">
             <ShoppingCart className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No hay productos en esta categoría</p>
+            <p className="text-muted-foreground">
+              {searchQuery ? `No se encontraron productos que coincidan con "${searchQuery}"` : 'No hay productos en esta categoría'}
+            </p>
+            {searchQuery && (
+              <button
+                onClick={clearSearch}
+                className="mt-2 text-sm text-primary hover:underline"
+              >
+                Limpiar búsqueda
+              </button>
+            )}
           </div>
         ) : (
           <>

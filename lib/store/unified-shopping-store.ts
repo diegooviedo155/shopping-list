@@ -27,6 +27,7 @@ interface UnifiedShoppingState {
   // Estado de UI
   activeTab: ItemStatus
   selectedCategory: Category
+  searchQuery: string
   
   // Estado de inicialización
   hasInitialized: boolean
@@ -50,12 +51,16 @@ interface UnifiedShoppingState {
   // Acciones de UI
   setActiveTab: (tab: ItemStatus) => void
   setSelectedCategory: (category: Category) => void
+  setSearchQuery: (query: string) => void
+  clearSearch: () => void
   clearError: () => void
   
   // Utilidades
   shouldFetch: () => boolean
   getItemsByStatus: (status: ItemStatus) => SimpleShoppingItem[]
   getItemsByCategory: (category: Category) => SimpleShoppingItem[]
+  getItemsByStatusAndSearch: (status: ItemStatus, searchQuery?: string) => SimpleShoppingItem[]
+  getItemsByCategoryAndSearch: (category: Category, searchQuery?: string) => SimpleShoppingItem[]
   getCompletedCount: (status: ItemStatus) => number
   getTotalCount: (status: ItemStatus) => number
   isMovingItem: (id: string) => boolean
@@ -74,6 +79,7 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
       isRefreshing: false,
       activeTab: ITEM_STATUS.THIS_MONTH as ItemStatus,
       selectedCategory: 'supermercado' as Category,
+      searchQuery: '',
       hasInitialized: false,
       lastFetch: null,
       movingItems: new Set<string>(),
@@ -364,6 +370,14 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
         set({ selectedCategory: category });
       },
 
+      setSearchQuery: (query: string) => {
+        set({ searchQuery: query });
+      },
+
+      clearSearch: () => {
+        set({ searchQuery: '' });
+      },
+
       clearError: () => {
         set({ error: null });
       },
@@ -404,6 +418,35 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
       // Verificar si un item está siendo movido
       isMovingItem: (id: string) => {
         return get().movingItems.has(id);
+      },
+
+      // Funciones de búsqueda
+      getItemsByStatusAndSearch: (status: ItemStatus, searchQuery?: string) => {
+        const items = get().items
+        let filteredItems = items.filter(item => item.status === status)
+        
+        if (searchQuery && searchQuery.trim()) {
+          const query = searchQuery.toLowerCase().trim()
+          filteredItems = filteredItems.filter(item => 
+            item.name.toLowerCase().includes(query)
+          )
+        }
+        
+        return filteredItems.sort((a, b) => a.orderIndex - b.orderIndex)
+      },
+
+      getItemsByCategoryAndSearch: (category: Category, searchQuery?: string) => {
+        const items = get().items
+        let filteredItems = items.filter(item => item.category === category)
+        
+        if (searchQuery && searchQuery.trim()) {
+          const query = searchQuery.toLowerCase().trim()
+          filteredItems = filteredItems.filter(item => 
+            item.name.toLowerCase().includes(query)
+          )
+        }
+        
+        return filteredItems.sort((a, b) => a.orderIndex - b.orderIndex)
       }
     }),
     {

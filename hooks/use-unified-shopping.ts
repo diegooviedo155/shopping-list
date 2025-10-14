@@ -26,11 +26,14 @@ interface UseUnifiedShoppingReturn {
   // Estado de UI
   activeTab: ItemStatus
   selectedCategory: Category
+  searchQuery: string
   
   // Items filtrados (memoizados)
   currentItems: SimpleShoppingItem[]
   itemsByCategory: (category: Category) => SimpleShoppingItem[]
   itemsByStatus: (status: ItemStatus) => SimpleShoppingItem[]
+  itemsByStatusAndSearch: (status: ItemStatus, searchQuery?: string) => SimpleShoppingItem[]
+  itemsByCategoryAndSearch: (category: Category, searchQuery?: string) => SimpleShoppingItem[]
   
   // Contadores (memoizados)
   completedCount: number
@@ -48,11 +51,14 @@ interface UseUnifiedShoppingReturn {
   // Acciones de UI
   setActiveTab: (tab: ItemStatus) => void
   setSelectedCategory: (category: Category) => void
+  setSearchQuery: (query: string) => void
+  clearSearch: () => void
   clearError: () => void
   
   // Utilidades
   refetch: (force?: boolean) => Promise<void>
   initialize: () => Promise<void>
+  forceInitialize: () => Promise<void>
   isMovingItem: (id: string) => boolean
   store: any
 }
@@ -108,6 +114,23 @@ export function useUnifiedShopping(): UseUnifiedShoppingReturn {
     return store.forceInitialize()
   }, [store.forceInitialize])
 
+  // Funciones de búsqueda
+  const itemsByStatusAndSearch = useCallback((status: ItemStatus, searchQuery?: string) => {
+    return store.getItemsByStatusAndSearch(status, searchQuery)
+  }, [store.getItemsByStatusAndSearch])
+
+  const itemsByCategoryAndSearch = useCallback((category: Category, searchQuery?: string) => {
+    return store.getItemsByCategoryAndSearch(category, searchQuery)
+  }, [store.getItemsByCategoryAndSearch])
+
+  const setSearchQuery = useCallback((query: string) => {
+    store.setSearchQuery(query)
+  }, [store.setSearchQuery])
+
+  const clearSearch = useCallback(() => {
+    store.clearSearch()
+  }, [store.clearSearch])
+
   return {
     // Estado principal
     items: store.items,
@@ -118,11 +141,14 @@ export function useUnifiedShopping(): UseUnifiedShoppingReturn {
     // Estado de UI
     activeTab: store.activeTab,
     selectedCategory: store.selectedCategory,
+    searchQuery: store.searchQuery,
     
     // Items filtrados
     currentItems,
     itemsByCategory,
     itemsByStatus,
+    itemsByStatusAndSearch,
+    itemsByCategoryAndSearch,
     
     // Contadores
     completedCount,
@@ -140,6 +166,8 @@ export function useUnifiedShopping(): UseUnifiedShoppingReturn {
     // Acciones de UI
     setActiveTab: store.setActiveTab,
     setSelectedCategory: store.setSelectedCategory,
+    setSearchQuery,
+    clearSearch,
     clearError: store.clearError,
     
     // Utilidades
@@ -162,20 +190,27 @@ export function useUnifiedCategoryView() {
     }
   }, [store.hasInitialized, store.initialize])
 
-  const getCategoryStats = useCallback((category: Category) => {
+  const getCategoryStats = useCallback((category: Category, searchQuery?: string) => {
     // Solo obtener items de "este_mes" para la vista de categoría
     const allCategoryItems = store.getItemsByCategory(category)
-    const categoryItems = allCategoryItems
+    let categoryItems = allCategoryItems
       .filter(item => item.status === ITEM_STATUS.THIS_MONTH)
-      .sort((a, b) => {
-        // Primero los no completados, luego los completados
-        if (a.completed === b.completed) {
-          // Si ambos tienen el mismo estado de completado, mantener orden por orderIndex
-          return a.orderIndex - b.orderIndex
-        }
-        // Los no completados van primero (false < true)
-        return a.completed ? 1 : -1
-      })
+    
+    // Aplicar filtro de búsqueda si se proporciona
+    if (searchQuery && searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      categoryItems = categoryItems.filter(item => 
+        item.name.toLowerCase().includes(query)
+      )
+    }
+    
+    // Ordenar: primero no completados, luego completados
+    categoryItems = categoryItems.sort((a, b) => {
+      if (a.completed === b.completed) {
+        return a.orderIndex - b.orderIndex
+      }
+      return a.completed ? 1 : -1
+    })
     
     const completedCount = categoryItems.filter(item => item.completed).length
     const totalCount = categoryItems.length
@@ -196,5 +231,9 @@ export function useUnifiedCategoryView() {
     getCategoryStats,
     clearError: store.clearError,
     refetch: () => store.fetchItems(true),
+    // Funciones de búsqueda
+    setSearchQuery: store.setSearchQuery,
+    clearSearch: store.clearSearch,
+    searchQuery: store.searchQuery,
   }
 }

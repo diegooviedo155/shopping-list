@@ -42,7 +42,7 @@ import Link from "next/link"
 const data = {
   navMain: [
     {
-      title: "Dashboard",
+      title: "Inicio",
       url: "/",
       icon: Home,
     },

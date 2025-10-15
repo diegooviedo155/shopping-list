@@ -196,7 +196,7 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
   return (
     <SidebarLayout 
       breadcrumbs={[
-        { label: "Dashboard", href: "/" },
+        { label: "Inicio", href: "/" },
         { label: "Categoría" }
       ]}
       title={categoryName}

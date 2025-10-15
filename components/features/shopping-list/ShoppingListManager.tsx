@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo, useCallback } from "react"
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button, FloatingActionButton, SearchInput } from '../../atoms'
 import { ButtonGroup } from '../../molecules'
-import { PageHeader, PageLayout } from '../../templates'
+import { PageHeader } from '../../templates'
+import { SidebarLayout } from '../../sidebar-layout'
 import { AddProductModal, EditProductModal } from '../../modals'
 import { DeleteConfirmationModal } from '../../modals/DeleteConfirmationModal'
 import { useUnifiedShopping } from '../../../hooks/use-unified-shopping'
@@ -350,18 +351,14 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
     }
   }, [currentItems, moveItemToStatus, showSuccess, showError])
 
-  const header = (
-    <PageHeader
-      title="Listas de Compras"
-      showBackButton
-      onBack={onBack}
-    />
-  )
-
-
   return (
     <ErrorBoundary fallback={ShoppingListErrorFallback}>
-      <PageLayout header={header}>
+      <SidebarLayout 
+        title="Lista de Compras"
+        description="Gestiona tus productos por mes"
+        showBackButton
+        onBack={onBack}
+      >
         <div className="space-y-6">
           {/* Month Tabs */}
           <div className="mb-6">
@@ -692,7 +689,7 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
           initialName={editingItem?.name || ''}
           isLoading={loading}
         />
-      </PageLayout>
+      </SidebarLayout>
     </ErrorBoundary>
   )
 }

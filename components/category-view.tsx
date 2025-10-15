@@ -6,7 +6,7 @@ import { ITEM_STATUS } from "@/lib/constants/item-status"
 import { getCategoryColor, getIconEmoji, categorySlugToDatabaseType } from "@/lib/constants/categories"
 import { Checkbox } from "./ui/checkbox"
 import { Badge } from "./ui/badge"
-import { PageLayout, PageHeader } from "./templates"
+import { SidebarLayout } from "./sidebar-layout"
 import { LoadingOverlay } from "./loading-states"
 import { FloatingActionButton, SearchInput } from "./atoms"
 import { AddProductModal } from "./modals"
@@ -110,31 +110,30 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
     }
   }, [items, optimisticUpdates])
 
-  const header = (
-    <PageHeader
-      title={categoryName}
-      showBackButton
-      onBack={onBack}
-      progress={progress.total > 0 ? progress : undefined}
-    />
-  )
-
   if (categoryStats.isLoading) {
     return (
-      <PageLayout header={header}>
+      <SidebarLayout 
+        title={categoryName}
+        showBackButton
+        onBack={onBack}
+      >
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
             <p className="text-muted-foreground">Cargando productos...</p>
           </div>
         </div>
-      </PageLayout>
+      </SidebarLayout>
     )
   }
 
   if (error) {
     return (
-      <PageLayout header={header}>
+      <SidebarLayout 
+        title={categoryName}
+        showBackButton
+        onBack={onBack}
+      >
         <div className="text-center py-12">
           <p className="text-destructive mb-4">Error: {error}</p>
           <button 
@@ -144,7 +143,7 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
             Reintentar
           </button>
         </div>
-      </PageLayout>
+      </SidebarLayout>
     )
   }
 
@@ -195,7 +194,15 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
   )
 
   return (
-    <PageLayout header={header}>
+    <SidebarLayout 
+      breadcrumbs={[
+        { label: "Dashboard", href: "/" },
+        { label: "Categoría" }
+      ]}
+      title={categoryName}
+      showBackButton
+      onBack={onBack}
+    >
       <LoadingOverlay isLoading={categoryStats.isLoading}>
         {/* Buscador */}
         <div className="mb-6">
@@ -241,6 +248,6 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
           />
         }
       />
-    </PageLayout>
+    </SidebarLayout>
   )
 }

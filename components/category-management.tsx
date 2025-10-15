@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { CategoryForm } from '@/components/forms/category-form'
+import { CategoryModal } from '@/components/modals/category-modal'
+import { FloatingActionButton } from '@/components/atoms'
+import { getIconEmoji } from '@/lib/constants/categories'
 import { Category, CreateCategoryData, UpdateCategoryData } from '@/lib/types/category'
 import { 
   Plus, 
@@ -31,7 +33,7 @@ export function CategoryManagement() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [showForm, setShowForm] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -59,6 +61,29 @@ export function CategoryManagement() {
     fetchCategories()
   }, [])
 
+  const handleOpenCreateModal = () => {
+    setEditingCategory(null)
+    setIsModalOpen(true)
+  }
+
+  const handleOpenEditModal = (category: Category) => {
+    setEditingCategory(category)
+    setIsModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setEditingCategory(null)
+  }
+
+  const handleSaveCategory = async (data: CreateCategoryData) => {
+    if (editingCategory) {
+      await handleUpdateCategory(data as UpdateCategoryData)
+    } else {
+      await handleCreateCategory(data)
+    }
+  }
+
   const handleCreateCategory = async (data: CreateCategoryData) => {
     try {
       setIsSubmitting(true)
@@ -76,7 +101,7 @@ export function CategoryManagement() {
 
       const newCategory = await response.json()
       setCategories(prev => [...prev, newCategory])
-      setShowForm(false)
+      setIsModalOpen(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al crear la categoría')
     } finally {
@@ -105,6 +130,7 @@ export function CategoryManagement() {
       setCategories(prev => 
         prev.map(cat => cat.id === editingCategory.id ? updatedCategory : cat)
       )
+      setIsModalOpen(false)
       setEditingCategory(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al actualizar la categoría')
@@ -180,49 +206,17 @@ export function CategoryManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Gestión de Categorías</h2>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nueva Categoría
-        </Button>
-      </div>
-
-      {showForm && (
-        <CategoryForm
-          onSave={handleCreateCategory}
-          onCancel={() => setShowForm(false)}
-          isLoading={isSubmitting}
-        />
-      )}
+      
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {categories.map((category) => (
           <div key={category.id}>
-            {editingCategory?.id === category.id ? (
-              <Card className="border-primary">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Edit className="w-4 h-4" />
-                    Editando: {category.name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CategoryForm
-                    category={editingCategory}
-                    onSave={handleUpdateCategory}
-                    onCancel={() => setEditingCategory(null)}
-                    isLoading={isSubmitting}
-                  />
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className={!category.isActive ? 'opacity-50' : ''}>
+            <Card className={!category.isActive ? 'opacity-50' : ''}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg flex items-center gap-2">
                       {category.icon && (
-                        <span className="text-lg">{category.icon}</span>
+                        <span className="text-lg">{getIconEmoji(category.icon)}</span>
                       )}
                       {category.name}
                     </CardTitle>
@@ -230,7 +224,7 @@ export function CategoryManagement() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setEditingCategory(category)}
+                        onClick={() => handleOpenEditModal(category)}
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
@@ -257,7 +251,6 @@ export function CategoryManagement() {
                         className="w-6 h-6 rounded border"
                         style={{ backgroundColor: category.color }}
                       />
-                      <span className="text-sm font-mono">{category.color}</span>
                     </div>
                   )}
 
@@ -294,7 +287,6 @@ export function CategoryManagement() {
                   </div>
                 </CardContent>
               </Card>
-            )}
           </div>
         ))}
       </div>
@@ -335,6 +327,22 @@ export function CategoryManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal para crear/editar categorías */}
+      <CategoryModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSave={handleSaveCategory}
+        category={editingCategory}
+        isLoading={isSubmitting}
+      />
+
+      {/* Botón flotante para nueva categoría */}
+      <FloatingActionButton
+        onClick={handleOpenCreateModal}
+        size="md"
+        position="bottom-right"
+      />
     </div>
   )
 }

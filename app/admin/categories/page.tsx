@@ -1,13 +1,24 @@
+'use client'
+
 import { CategoryManagement } from '@/components/category-management'
-import { AdminNav } from '@/components/admin-nav'
+import { SidebarLayout } from '@/components/sidebar-layout'
+import { useRouter } from 'next/navigation'
 
 export default function CategoriesAdminPage() {
+  const router = useRouter()
+
+  const handleBack = () => {
+    router.push('/')
+  }
+
   return (
-    <div className="min-h-screen bg-background">
-      <AdminNav />
-      <div className="container mx-auto py-8 px-4">
-        <CategoryManagement />
-      </div>
-    </div>
+    <SidebarLayout 
+      title="Administración de Categorías"
+      description="Gestiona las categorías de productos"
+      showBackButton
+      onBack={handleBack}
+    >
+      <CategoryManagement />
+    </SidebarLayout>
   )
 }

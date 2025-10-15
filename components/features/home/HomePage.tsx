@@ -5,14 +5,13 @@ import { useRouter } from "next/navigation"
 import { motion } from 'framer-motion'
 import { Button, CategoryCardSkeleton } from '../../atoms'
 import { CategoryCard } from '../../organisms'
-import { PageLayout } from '../../templates'
+import { SidebarLayout } from '../../sidebar-layout'
 import { useUnifiedShopping } from '../../../hooks/use-unified-shopping'
 import { useCategories } from '../../../hooks/use-categories'
 import { useToast } from '../../../hooks/use-toast'
 import { LoadingSpinner } from '@/components/loading-states'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { AddProductModal } from '@/components/modals'
-import { LogoutButton } from '../../auth/logout-button'
 import { cn } from '@/lib/utils'
 import { ITEM_STATUS } from '@/lib/constants/item-status'
 import { formatCategoryForUI, categorySlugToDatabaseType } from '@/lib/constants/categories'
@@ -70,27 +69,8 @@ export function HomePage() {
 
   return (
     <ErrorBoundary>
-      <PageLayout>
+      <SidebarLayout>
         <div>
-          {/* Header */}
-          <div>
-            <motion.div
-              className="text-center mb-8 relative"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <div className="absolute top-0 right-0">
-                <LogoutButton />
-              </div>
-              <h1 className="text-4xl font-bold text-foreground mb-2">
-                Listas de Compras
-              </h1>
-              <p className="text-muted-foreground text-lg">
-                Organiza tus compras por categoría
-              </p>
-            </motion.div>
-          </div>
 
           {/* Categories Grid */}
           <div>
@@ -237,7 +217,7 @@ export function HomePage() {
             </motion.div>
           </div>
         </div>
-      </PageLayout>
+      </SidebarLayout>
     </ErrorBoundary>
   )
 }

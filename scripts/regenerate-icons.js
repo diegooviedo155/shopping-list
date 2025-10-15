@@ -7,7 +7,7 @@ console.log('🎨 Regenerando iconos PWA desde el favicon...\n');
 
 try {
   // Ejecutar pwa-asset-generator
-  const command = `npx pwa-asset-generator ./public/placeholder-logo.png ./public/icons --icon-only --background "#3B82F6" --padding "10%" --manifest ./public/manifest.json`;
+  const command = `npx pwa-asset-generator ./public/placeholder-logo.png ./public/icons --icon-only --background "transparent" --padding "0%" --manifest ./public/manifest.json`;
   
   console.log('📱 Generando iconos...');
   execSync(command, { stdio: 'inherit' });

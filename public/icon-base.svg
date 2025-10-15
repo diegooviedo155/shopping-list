@@ -1,0 +1,26 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fondo circular -->
+  <circle cx="256" cy="256" r="256" fill="#3B82F6"/>
+  
+  <!-- Icono de carrito de compras -->
+  <path d="M128 192L160 384H352L384 192H128Z" fill="white" stroke="white" stroke-width="8" stroke-linejoin="round"/>
+  
+  <!-- Ruedas del carrito -->
+  <circle cx="176" cy="400" r="16" fill="white"/>
+  <circle cx="336" cy="400" r="16" fill="white"/>
+  
+  <!-- Asa del carrito -->
+  <path d="M160 192L160 160C160 144 176 128 192 128H320C336 128 352 144 352 160L352 192" fill="none" stroke="white" stroke-width="8" stroke-linecap="round"/>
+  
+  <!-- Lista de compras -->
+  <rect x="200" y="240" width="112" height="8" rx="4" fill="white"/>
+  <rect x="200" y="256" width="80" height="8" rx="4" fill="white"/>
+  <rect x="200" y="272" width="96" height="8" rx="4" fill="white"/>
+  <rect x="200" y="288" width="72" height="8" rx="4" fill="white"/>
+  
+  <!-- Checkmarks -->
+  <path d="M180 244L188 252L196 244" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M180 260L188 268L196 260" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M180 276L188 284L196 276" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M180 292L188 300L196 292" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

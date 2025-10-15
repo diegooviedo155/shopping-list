@@ -1,0 +1,68 @@
+{
+  "name": "Shopping List App",
+  "short_name": "Shopping List",
+  "description": "Una aplicación para gestionar tu lista de compras",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#3B82F6",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "es",
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
+  "icons": [
+    {
+      "src": "public/icons/manifest-icon-192.maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "public/icons/manifest-icon-192.maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "public/icons/manifest-icon-512.maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "public/icons/manifest-icon-512.maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Ver Lista",
+      "short_name": "Lista",
+      "description": "Ver tu lista de compras",
+      "url": "/lists",
+      "icons": [
+        {
+          "src": "/icons/manifest-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Agregar Producto",
+      "short_name": "Agregar",
+      "description": "Agregar un nuevo producto",
+      "url": "/lists",
+      "icons": [
+        {
+          "src": "/icons/manifest-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

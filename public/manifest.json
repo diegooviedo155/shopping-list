@@ -1,6 +1,6 @@
 {
-  "name": "Shopping List App",
-  "short_name": "Shopping List",
+  "name": "Lo Que Falta",
+  "short_name": "Lo Que Falta",
   "description": "Una aplicación para gestionar tu lista de compras",
   "start_url": "/",
   "display": "standalone",

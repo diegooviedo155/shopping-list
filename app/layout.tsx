@@ -16,17 +16,39 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Shopping Lists App",
-  description: "Una aplicación móvil para gestionar listas de compras con múltiples categorías",
-  keywords: ["shopping", "listas", "compras", "organizador", "productos"],
-  authors: [{ name: "Shopping Lists Team" }],
+  title: "Lo Que Falta - Lista de Compras",
+  description: "Una aplicación móvil para gestionar tu lista de compras con múltiples categorías. Nunca olvides lo que necesitas comprar.",
+  keywords: ["shopping", "listas", "compras", "organizador", "productos", "lo que falta", "carrito"],
+  authors: [{ name: "Lo Que Falta Team" }],
   viewport: "width=device-width, initial-scale=1, maximum-scale=1",
   themeColor: "#3B82F6",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Shopping List",
+    title: "Lo Que Falta",
+  },
+  openGraph: {
+    title: "Lo Que Falta - Lista de Compras",
+    description: "Una aplicación móvil para gestionar tu lista de compras con múltiples categorías. Nunca olvides lo que necesitas comprar.",
+    url: "https://loquefalta.app",
+    siteName: "Lo Que Falta",
+    images: [
+      {
+        url: "/apple-splash-2048-1536.jpg",
+        width: 2048,
+        height: 1536,
+        alt: "Lo Que Falta - Lista de Compras",
+      },
+    ],
+    locale: "es_ES",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Lo Que Falta - Lista de Compras",
+    description: "Una aplicación móvil para gestionar tu lista de compras con múltiples categorías. Nunca olvides lo que necesitas comprar.",
+    images: ["/apple-splash-2048-1536.jpg"],
   },
   icons: {
     icon: [

@@ -19,6 +19,7 @@ interface SimpleShoppingItem {
 interface UseUnifiedShoppingReturn {
   // Estado principal
   items: SimpleShoppingItem[]
+  categories: any[]
   loading: boolean
   error: string | null
   isRefreshing: boolean
@@ -30,7 +31,7 @@ interface UseUnifiedShoppingReturn {
   
   // Items filtrados (memoizados)
   currentItems: SimpleShoppingItem[]
-  itemsByCategory: (category: Category) => SimpleShoppingItem[]
+  itemsByCategory: (categorySlug: string) => SimpleShoppingItem[]
   itemsByStatus: (status: ItemStatus) => SimpleShoppingItem[]
   itemsByStatusAndSearch: (status: ItemStatus, searchQuery?: string) => SimpleShoppingItem[]
   itemsByCategoryAndSearch: (category: Category, searchQuery?: string) => SimpleShoppingItem[]
@@ -69,9 +70,11 @@ export function useUnifiedShopping(): UseUnifiedShoppingReturn {
   
   // Inicialización automática solo una vez
   useEffect(() => {
+    console.log('useUnifiedShopping: useEffect triggered', { hasInitialized: store.hasInitialized })
     if (!store.hasInitialized) {
+      console.log('useUnifiedShopping: Starting initialization...')
       store.initialize().catch((error) => {
-        // Error handling
+        console.error('useUnifiedShopping: Initialization error:', error)
       });
     }
   }, [store.hasInitialized])
@@ -91,17 +94,20 @@ export function useUnifiedShopping(): UseUnifiedShoppingReturn {
   }, [store.items, store.activeTab, store.getTotalCount])
 
   // Funciones wrapper memoizadas
-  const itemsByCategory = useCallback((category: Category) => {
-    return store.getItemsByCategory(category)
+  const itemsByCategory = useCallback((categorySlug: string) => {
+    return store.getItemsByCategory(categorySlug)
   }, [store.getItemsByCategory])
 
   const itemsByStatus = useCallback((status: ItemStatus) => {
     return store.getItemsByStatus(status)
   }, [store.getItemsByStatus])
 
-  const refetch = useCallback((force = false) => {
-    return store.fetchItems(force)
-  }, [store.fetchItems])
+  const refetch = useCallback(async (force = false) => {
+    await Promise.all([
+      store.fetchItems(force),
+      store.fetchCategories()
+    ])
+  }, [store.fetchItems, store.fetchCategories])
 
   const initialize = useCallback(() => {
     return store.initialize()
@@ -131,6 +137,7 @@ export function useUnifiedShopping(): UseUnifiedShoppingReturn {
   return {
     // Estado principal
     items: store.items,
+    categories: store.categories,
     loading: store.loading,
     error: store.error,
     isRefreshing: store.isRefreshing,

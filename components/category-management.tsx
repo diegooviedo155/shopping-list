@@ -187,19 +187,22 @@ export function CategoryManagement() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="w-8 h-8 animate-spin" />
-        <span className="ml-2">Cargando categorías...</span>
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="ml-3 text-lg font-medium text-foreground">Cargando categorías...</span>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="text-center p-8">
-        <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
-        <p className="text-destructive mb-4">{error}</p>
-        <Button onClick={fetchCategories}>Reintentar</Button>
+      <div className="text-center p-12">
+        <AlertTriangle className="w-16 h-16 text-destructive mx-auto mb-6" />
+        <h3 className="text-xl font-semibold text-foreground mb-2">Error al cargar categorías</h3>
+        <p className="text-destructive mb-6 text-lg">{error}</p>
+        <Button onClick={fetchCategories} size="lg" className="bg-primary hover:bg-primary/90">
+          Reintentar
+        </Button>
       </div>
     )
   }
@@ -208,23 +211,26 @@ export function CategoryManagement() {
     <div className="space-y-6">
       
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {categories.map((category) => (
           <div key={category.id}>
-            <Card className={!category.isActive ? 'opacity-50' : ''}>
-                <CardHeader className="pb-3">
+            <Card className={`transition-all duration-200 hover:shadow-lg ${!category.isActive ? 'opacity-60 bg-muted/30' : 'bg-card border-border shadow-md'}`}>
+                <CardHeader className="pb-4">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg flex items-center gap-2">
+                    <CardTitle className="text-xl font-semibold flex items-center gap-3 text-foreground">
                       {category.icon && (
-                        <span className="text-lg">{getIconEmoji(category.icon)}</span>
+                        <span className="text-2xl">{getIconEmoji(category.icon)}</span>
                       )}
-                      {category.name}
+                      <span className={category.isActive ? 'text-foreground' : 'text-muted-foreground'}>
+                        {category.name}
+                      </span>
                     </CardTitle>
-                    <div className="flex gap-1">
+                    <div className="flex gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleOpenEditModal(category)}
+                        className="hover:bg-primary/10 text-foreground hover:text-primary"
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
@@ -232,45 +238,58 @@ export function CategoryManagement() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setDeletingCategory(category)}
+                        className="hover:bg-destructive/10 text-foreground hover:text-destructive"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Slug:</span>
-                    <Badge variant="outline">{category.slug}</Badge>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-foreground">Slug:</span>
+                    <Badge variant="outline" className="bg-muted text-foreground border-border">
+                      {category.slug}
+                    </Badge>
                   </div>
                   
                   {category.color && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">Color:</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-foreground">Color:</span>
                       <div
-                        className="w-6 h-6 rounded border"
+                        className="w-8 h-8 rounded-lg border-2 border-border shadow-sm"
                         style={{ backgroundColor: category.color }}
                       />
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {category.color}
+                      </span>
                     </div>
                   )}
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Items:</span>
-                    <Badge variant="secondary">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-foreground">Items:</span>
+                    <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
                       {category._count?.items || 0}
                     </Badge>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Orden:</span>
-                    <Badge variant="outline">{category.orderIndex}</Badge>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-foreground">Orden:</span>
+                    <Badge variant="outline" className="bg-muted text-foreground border-border">
+                      {category.orderIndex}
+                    </Badge>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center justify-between pt-3 border-t border-border">
                     <Button
-                      variant="outline"
+                      variant={category.isActive ? "destructive" : "default"}
                       size="sm"
                       onClick={() => toggleCategoryStatus(category)}
+                      className={`font-medium ${
+                        category.isActive 
+                          ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' 
+                          : 'bg-primary hover:bg-primary/90 text-primary-foreground'
+                      }`}
                     >
                       {category.isActive ? (
                         <>
@@ -292,11 +311,12 @@ export function CategoryManagement() {
       </div>
 
       {categories.length === 0 && (
-        <div className="text-center py-12">
-          <ShoppingCart className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">No hay categorías creadas</p>
-          <Button onClick={() => setShowForm(true)} className="mt-4">
-            <Plus className="w-4 h-4 mr-2" />
+        <div className="text-center py-16">
+          <ShoppingCart className="w-16 h-16 text-muted-foreground mx-auto mb-6" />
+          <h3 className="text-xl font-semibold text-foreground mb-2">No hay categorías creadas</h3>
+          <p className="text-muted-foreground mb-6 text-lg">Comienza creando tu primera categoría de productos</p>
+          <Button onClick={handleOpenCreateModal} size="lg" className="bg-primary hover:bg-primary/90">
+            <Plus className="w-5 h-5 mr-2" />
             Crear Primera Categoría
           </Button>
         </div>

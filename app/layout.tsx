@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 import { AuthProvider } from "@/components/auth/auth-provider"
+import { isSupabaseConfigured } from "@/lib/supabase/mock"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -70,6 +71,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="dark" suppressHydrationWarning>
+      <head>
+        <script src="/oauth-handler.js" defer></script>
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

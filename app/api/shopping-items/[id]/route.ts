@@ -1,148 +1,102 @@
-import { type NextRequest, NextResponse } from "next/server"
-import prisma from "@/lib/prisma"
-import { validateUpdateItem } from "@/lib/validations/shopping"
+import { NextRequest, NextResponse } from 'next/server'
+import { supabase } from '@/lib/supabase/server'
+import { getAuthenticatedUserId, getUserIdFromRequest } from '@/lib/auth/server-auth'
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const body = await request.json()
     const { id } = await params
+    const body = await request.json()
+
+    // Intentar obtener el usuario autenticado de las cookies primero
+    let user_id = await getAuthenticatedUserId()
     
-    // Validar los datos de entrada
-    const validation = validateUpdateItem(body)
-    if (!validation.success) {
+    // Si no se puede obtener de las cookies, intentar extraer del token JWT
+    if (!user_id) {
+      user_id = getUserIdFromRequest(request)
+    }
+    
+    if (!user_id) {
       return NextResponse.json(
-        { 
-          error: "Datos inválidos",
-          details: validation.error.errors.map(e => e.message).join(', ')
-        }, 
-        { status: 400 }
+        { error: 'Unauthorized - User not authenticated' },
+        { status: 401 }
       )
     }
 
-    const updateData = validation.data
-    
-    // Status is already in correct format (este_mes)
+    const { data: item, error } = await supabase
+      .from('shopping_items')
+      .update(body)
+      .eq('id', id)
+      .eq('user_id', user_id) // Ensure RLS is respected
+      .select()
+      .single()
 
-    // If category is being updated, convert slug to ID
-    if (updateData.category) {
-      const category = await prisma.category.findUnique({
-        where: { slug: updateData.category }
-      })
-
-      if (!category) {
-        return NextResponse.json(
-          { error: "Categoría no encontrada" },
-          { status: 404 }
-        )
-      }
-
-      updateData.categoryId = category.id
-      delete updateData.category
+    if (error) {
+      console.error('Error updating shopping item:', error)
+      return NextResponse.json(
+        { error: 'Failed to update shopping item' },
+        { status: 500 }
+      )
     }
-    
-    const item = await prisma.shoppingItem.update({
-      where: { id },
-      data: updateData,
-      include: {
-        category: true
-      }
-    })
-    
-    // Return item with status as-is (already in correct format)
-    const result = item
-    
-    return NextResponse.json(result)
+
+    if (!item) {
+      return NextResponse.json({ error: 'Shopping item not found' }, { status: 404 })
+    }
+
+    return NextResponse.json(item)
   } catch (error) {
-    return NextResponse.json({ 
-      error: "Failed to update shopping item",
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    console.error('Error in shopping items PATCH API:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const body = await request.json()
-    const { id } = await params
-    
-    // Validar los datos de entrada
-    const validation = validateUpdateItem(body)
-    if (!validation.success) {
-      return NextResponse.json(
-        { 
-          error: "Datos inválidos",
-          details: validation.error.errors.map(e => e.message).join(', ')
-        }, 
-        { status: 400 }
-      )
-    }
-
-    const updateData = validation.data
-    
-    // Status is already in correct format (este_mes)
-
-    // If category is being updated, convert slug to ID
-    if (updateData.category) {
-      const category = await prisma.category.findUnique({
-        where: { slug: updateData.category }
-      })
-
-      if (!category) {
-        return NextResponse.json(
-          { error: "Categoría no encontrada" },
-          { status: 404 }
-        )
-      }
-
-      updateData.categoryId = category.id
-      delete updateData.category
-    }
-    
-    const item = await prisma.shoppingItem.update({
-      where: { id },
-      data: updateData,
-      include: {
-        category: true
-      }
-    })
-    
-    // Return item with status as-is (already in correct format)
-    const result = item
-    
-    return NextResponse.json(result)
-  } catch (error) {
-    return NextResponse.json({ 
-      error: "Failed to update shopping item",
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
-  }
-}
-
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const { id } = await params
 
-    // Verificar que el item existe antes de eliminarlo
-    const existingItem = await prisma.shoppingItem.findUnique({
-      where: { id },
-    })
-
-    if (!existingItem) {
+    // Intentar obtener el usuario autenticado de las cookies primero
+    let user_id = await getAuthenticatedUserId()
+    
+    // Si no se puede obtener de las cookies, intentar extraer del token JWT
+    if (!user_id) {
+      user_id = getUserIdFromRequest(request)
+    }
+    
+    if (!user_id) {
       return NextResponse.json(
-        { error: "Item not found" },
-        { status: 404 }
+        { error: 'Unauthorized - User not authenticated' },
+        { status: 401 }
       )
     }
 
-    await prisma.shoppingItem.delete({
-      where: { id },
-    })
+    const { error } = await supabase
+      .from('shopping_items')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user_id) // Ensure RLS is respected
+
+    if (error) {
+      console.error('Error deleting shopping item:', error)
+      return NextResponse.json(
+        { error: 'Failed to delete shopping item' },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    return NextResponse.json({ 
-      error: "Failed to delete shopping item",
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    console.error('Error in shopping items DELETE API:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }

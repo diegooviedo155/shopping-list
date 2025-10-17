@@ -6,28 +6,36 @@ import { motion } from 'framer-motion'
 import { Button, CategoryCardSkeleton } from '../../atoms'
 import { CategoryCard } from '../../organisms'
 import { SidebarLayout } from '../../sidebar-layout'
+import { ProtectedRoute } from '../../auth/protected-route'
 import { useUnifiedShopping } from '../../../hooks/use-unified-shopping'
-import { useCategories } from '../../../hooks/use-categories'
 import { useToast } from '../../../hooks/use-toast'
+import { useAuth } from '../../auth/auth-provider'
 import { LoadingSpinner } from '@/components/loading-states'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { AddProductModal } from '@/components/modals'
 import { cn } from '@/lib/utils'
 import { ITEM_STATUS } from '@/lib/constants/item-status'
-import { formatCategoryForUI, categorySlugToDatabaseType } from '@/lib/constants/categories'
+import { formatCategoryForUI } from '@/lib/constants/categories'
 import { Plus, ShoppingCart, Settings, ShoppingBasket } from 'lucide-react'
 
 export function HomePage() {
   const router = useRouter()
-  const { items, loading, error, itemsByCategory, addItem, refetch } = useUnifiedShopping()
-  const { categories: apiCategories, loading: categoriesLoading } = useCategories()
+  const { items, categories, loading, error, itemsByCategory, addItem, refetch } = useUnifiedShopping()
   const { showError, showSuccess } = useToast()
   const [isHydrated, setIsHydrated] = useState(false)
+  const { user, isLoading: authLoading } = useAuth()
 
   // Manejar hidratación
   useEffect(() => {
     setIsHydrated(true)
   }, [])
+
+  // Forzar inicialización si no hay categorías
+  useEffect(() => {
+    if (isHydrated && categories.length === 0 && !loading) {
+      refetch(true)
+    }
+  }, [isHydrated, categories.length, loading, refetch])
 
 
 
@@ -68,8 +76,9 @@ export function HomePage() {
   }
 
   return (
-    <ErrorBoundary>
-      <SidebarLayout>
+    <ProtectedRoute>
+      <ErrorBoundary>
+        <SidebarLayout>
         <div>
 
           {/* Categories Grid */}
@@ -80,26 +89,30 @@ export function HomePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              {categoriesLoading ? (
-                // Mostrar skeletons mientras cargan las categorías
-                Array.from({ length: 6 }).map((_, index) => (
-                  <motion.div
-                    key={`skeleton-${index}`}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.1 * index }}
-                  >
-                    <CategoryCardSkeleton />
-                  </motion.div>
-                ))
-              ) : (
-                apiCategories
-                  .filter(cat => cat.isActive)
-                  .sort((a, b) => a.orderIndex - b.orderIndex)
-                  .map((category, index) => {
+                    {loading ? (
+                      // Mostrar skeletons mientras cargan las categorías
+                      Array.from({ length: 6 }).map((_, index) => (
+                        <motion.div
+                          key={`skeleton-${index}`}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.1 * index }}
+                        >
+                          <CategoryCardSkeleton />
+                        </motion.div>
+                      ))
+                    ) : categories.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">No hay categorías disponibles</p>
+                      </div>
+                    ) : (
+                      (() => {
+                        const activeCategories = categories.filter(cat => cat.isActive !== false) // Show all categories if isActive is undefined
+                        const sortedCategories = activeCategories.sort((a, b) => a.orderIndex - b.orderIndex)
+                        return sortedCategories.map((category, index) => {
                   const formattedCategory = formatCategoryForUI(category)
                   // Calcular estadísticas de items por categoría (solo este mes)
-                  const allCategoryItems = itemsByCategory(categorySlugToDatabaseType(category.slug))
+                  const allCategoryItems = itemsByCategory(category.slug)
                   const categoryItems = allCategoryItems.filter(item => item.status === ITEM_STATUS.THIS_MONTH)
                   
                   const completedCount = categoryItems.filter(item => item.completed).length
@@ -124,13 +137,14 @@ export function HomePage() {
                         itemCount={totalCount}
                         completedCount={completedCount}
                         progress={progress}
-                        isLoading={!isHydrated || categoriesLoading}
+                              isLoading={!isHydrated || loading}
                         onClick={() => handleCategoryClick(category.slug)}
                       />
                     </motion.div>
                   )
                 })
-              )}
+                      })()
+                    )}
             </motion.div>
           </div>
 
@@ -205,19 +219,20 @@ export function HomePage() {
                   </div>
                 </div>
 
-                <div className="bg-card border border-border rounded-lg p-6">
-                  <div className="text-2xl font-bold text-orange-500 mb-1">
-                    {isHydrated ? apiCategories.filter(cat => cat.isActive).length : 0}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Categorías
-                  </div>
-                </div>
+                      <div className="bg-card border border-border rounded-lg p-6">
+                        <div className="text-2xl font-bold text-orange-500 mb-1">
+                          {isHydrated ? categories.filter(cat => cat.isActive).length : 0}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Categorías
+                        </div>
+                      </div>
               </div>
             </motion.div>
           </div>
-        </div>
-      </SidebarLayout>
-    </ErrorBoundary>
+          </div>
+        </SidebarLayout>
+      </ErrorBoundary>
+    </ProtectedRoute>
   )
 }

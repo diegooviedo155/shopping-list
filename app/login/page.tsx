@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,27 +12,40 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 
-export default function LoginPage() {
+export default function IniciarSesionPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const { login, loginWithGoogle, loginWithApple, isLoading } = useAuth()
+  const { login, loginWithGoogle, loginWithApple, isLoading, user } = useAuth()
   const router = useRouter()
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    console.log('Iniciar Sesión page - useEffect triggered:', { user: !!user, isLoading })
+    if (user && !isLoading) {
+      console.log('Iniciar Sesión page - Redirecting to home...')
+      // Direct navigation to avoid middleware conflicts
+      window.location.href = '/'
+    }
+  }, [user, isLoading, router])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('Iniciar Sesión page - handleLogin called')
     try {
+      console.log('Iniciar Sesión page - Calling login function...')
       await login(email, password)
-      router.push('/')
+      console.log('Iniciar Sesión page - Login function completed')
+      // The useEffect will handle the redirect when user state updates
     } catch (error) {
-      console.error('Login failed:', error)
+      console.error('Iniciar Sesión failed:', error)
     }
   }
 
   const handleGoogleLogin = async () => {
     try {
       await loginWithGoogle()
-      router.push('/')
+      // The useEffect will handle the redirect when user state updates
     } catch (error) {
       console.error('Google login failed:', error)
     }
@@ -41,7 +54,7 @@ export default function LoginPage() {
   const handleAppleLogin = async () => {
     try {
       await loginWithApple()
-      router.push('/')
+      // The useEffect will handle the redirect when user state updates
     } catch (error) {
       console.error('Apple login failed:', error)
     }
@@ -58,15 +71,21 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold text-white mb-2">
             Bienvenido a <span className="text-primary">Lo Que Falta</span>
           </h1>
-          <p className="text-gray-400">
-            No tienes una cuenta?{' '}
-            <Link href="/register" className="text-blue-400 hover:underline">
-              Regístrate
-            </Link>
-          </p>
+              <p className="text-gray-400">
+                No tienes una cuenta?{' '}
+                <Link href="/register" className="text-blue-400 hover:underline">
+                  Regístrate
+                </Link>
+              </p>
+              <p className="text-gray-400 mt-2">
+                ¿Olvidaste tu contraseña?{' '}
+                <Link href="/forgot-password" className="text-blue-400 hover:underline">
+                  Recuperar contraseña
+                </Link>
+              </p>
         </div>
 
-        {/* Login Form */}
+        {/* Formulario de Iniciar Sesión */}
         <Card className="bg-background border-none">
           <CardContent className="p-6">
             <form onSubmit={handleLogin} className="space-y-4">
@@ -114,7 +133,7 @@ export default function LoginPage() {
                 className="w-full bg-gray-700 hover:bg-gray-600 text-white"
                 disabled={isLoading}
               >
-                {isLoading ? 'Logging in...' : 'Login'}
+                {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </Button>
             </form>
 
@@ -125,7 +144,7 @@ export default function LoginPage() {
               <Separator className="flex-1 bg-gray-700" />
             </div>
 
-            {/* Social Login */}
+            {/* Iniciar Sesión Social */}
             <div className="space-y-3">
               <Button
               disabled

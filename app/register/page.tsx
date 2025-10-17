@@ -41,7 +41,7 @@ export default function RegisterPage() {
     }
   }
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleIniciarSesion = async () => {
     try {
       await loginWithGoogle()
       router.push('/')
@@ -50,7 +50,7 @@ export default function RegisterPage() {
     }
   }
 
-  const handleAppleLogin = async () => {
+  const handleAppleIniciarSesion = async () => {
     try {
       await loginWithApple()
       router.push('/')
@@ -180,10 +180,10 @@ export default function RegisterPage() {
               <Separator className="flex-1 bg-gray-700" />
             </div>
 
-            {/* Social Login */}
+            {/* Iniciar Sesión Social */}
             <div className="space-y-3">
               <Button
-                onClick={handleAppleLogin}
+                onClick={handleAppleIniciarSesion}
                 variant="outline"
                 className="w-full bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
               >
@@ -192,7 +192,7 @@ export default function RegisterPage() {
               </Button>
 
               <Button
-                onClick={handleGoogleLogin}
+                onClick={handleGoogleIniciarSesion}
                 variant="outline"
                 className="w-full bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
               >

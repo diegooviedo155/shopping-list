@@ -22,6 +22,12 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
   // Estado local para actualizaciones optimistas
   const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, boolean>>({})
   const [pendingUpdates, setPendingUpdates] = useState<Set<string>>(new Set())
+  const [isHydrated, setIsHydrated] = useState(false)
+  
+  // Manejar hidratación
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
   
   // Obtener estadísticas de la categoría con búsqueda
   const categoryStats = getCategoryStats(categorySlugToDatabaseType(category), searchQuery)
@@ -147,14 +153,29 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
     )
   }
 
-  const renderItemsList = (items: any[], title: string) => (
-    <>
-      {items.length > 0 && (
+  const renderItemsList = (items: any[], title: string) => {
+    if (!isHydrated) {
+      return (
         <div className="mb-6">
           <div className="space-y-2">
-            {items.map((item) => {
-              const isCompleted = getItemStatus(item)
-              const isPending = pendingUpdates.has(item.id)
+            <div className="animate-pulse">
+              <div className="h-12 bg-muted rounded-lg"></div>
+              <div className="h-12 bg-muted rounded-lg"></div>
+              <div className="h-12 bg-muted rounded-lg"></div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <>
+        {items.length > 0 && (
+          <div className="mb-6">
+            <div className="space-y-2">
+              {items.map((item) => {
+                const isCompleted = getItemStatus(item)
+                const isPending = pendingUpdates.has(item.id)
               
               return (
                 <div
@@ -191,7 +212,8 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
         </div>
       )}
     </>
-  )
+    )
+  }
 
   return (
     <SidebarLayout 

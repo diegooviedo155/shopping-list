@@ -3,7 +3,7 @@
 import { useToast as useRadixToast } from "@/components/ui/use-toast"
 
 export function useToast() {
-  const { toast } = useRadixToast()
+  const { toast, toasts } = useRadixToast()
 
   const showSuccess = (title: string, description?: string) => {
     toast({
@@ -31,6 +31,7 @@ export function useToast() {
 
   return {
     toast,
+    toasts,
     showSuccess,
     showError,
     showInfo,

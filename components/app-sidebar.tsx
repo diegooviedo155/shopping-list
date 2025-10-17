@@ -3,17 +3,11 @@
 import * as React from "react"
 import { useState, useEffect } from "react"
 import {
-  Calendar,
   Home,
   List,
-  Settings,
   ShoppingCart,
-  User,
   LogOut,
   Plus,
-  BarChart3,
-  Archive,
-  Clock,
   CheckCircle2,
   Circle
 } from "lucide-react"
@@ -34,7 +28,7 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/components/auth/auth-provider"
-import { useUnifiedShopping } from "@/hooks/use-unified-shopping"
+import { useSupabaseShopping } from "@/hooks/use-supabase-shopping"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 
@@ -57,18 +51,11 @@ const data = {
       icon: ShoppingCart,
     },
   ],
-  navSecondary: [
-    {
-      title: "Configuración",
-      url: "/settings",
-      icon: Settings,
-    },
-  ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, logout } = useAuth()
-  const { totalCount, completedCount } = useUnifiedShopping()
+  const { totalCount, completedCount } = useSupabaseShopping()
   const router = useRouter()
   const [isHydrated, setIsHydrated] = useState(false)
 
@@ -76,9 +63,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     setIsHydrated(true)
   }, [])
 
-  const handleLogout = () => {
-    logout()
-    router.push('/login')
+  const handleLogout = async () => {
+    await logout()
+    // El logout ya maneja la redirección
   }
 
   return (
@@ -98,6 +85,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarGroup>
           <SidebarGroupLabel>Navegación</SidebarGroupLabel>
           <SidebarGroupContent>
+
+
             <SidebarMenu>
               {data.navMain.map((item) => (
                 <SidebarMenuItem key={item.title}>
@@ -112,7 +101,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        
+
         <SidebarGroup>
           <SidebarGroupLabel>Estadísticas</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -163,35 +152,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="mt-auto">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {data.navSecondary.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
+        {/* Información del usuario - Solo en web (al final) */}
+        <div className="px-2 py-4 border-b border-sidebar-border">
+          <div className="text-sm font-semibold text-white">
+            {isHydrated ? (user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario') : 'Usuario'}
+          </div>
+          <div className="text-xs text-white/70 truncate">
+            {isHydrated ? (user?.email || 'usuario@ejemplo.com') : 'usuario@ejemplo.com'}
+          </div>
+        </div>
+        
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <div className="flex items-center gap-2 w-full">
-                <User className="size-4" />
-                <span className="truncate">
-                  {isHydrated ? (user?.name || 'Usuario') : 'Usuario'}
-                </span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleLogout}>
               <LogOut className="size-4" />

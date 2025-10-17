@@ -25,20 +25,55 @@ export async function middleware(request: NextRequest) {
     },
   )
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
+  // Handle OAuth callback redirects (simplified)
+  if (request.nextUrl.pathname === '/' && request.nextUrl.hash) {
+    // Let the client-side JavaScript handle the OAuth redirect
+    console.log('Middleware: Detected hash in URL, allowing client-side handling')
+  }
 
+  // Get user session
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
-  // creating a new response object with NextResponse.redirect() or
-  // NextResponse.rewrite(), you must:
-  // 1. Pass the request in it, like so: NextResponse.redirect(url, { request })
-  // 2. Copy over the cookies, like so: response.cookies.setAll(supabaseResponse.cookies.getAll())
+  // Define route patterns
+  const isAuthRoute = request.nextUrl.pathname.startsWith('/login') || 
+                     request.nextUrl.pathname.startsWith('/register') ||
+                     request.nextUrl.pathname.startsWith('/auth') ||
+                     request.nextUrl.pathname.startsWith('/forgot-password') ||
+                     request.nextUrl.pathname.startsWith('/reset-password') ||
+                     request.nextUrl.pathname.startsWith('/error')
+  
+  const isProtectedRoute = !isAuthRoute && (
+    request.nextUrl.pathname === '/' ||
+    request.nextUrl.pathname.startsWith('/lists') ||
+    request.nextUrl.pathname.startsWith('/admin') ||
+    request.nextUrl.pathname.startsWith('/categories')
+  )
 
+  // Redirect logic
+  if (isProtectedRoute && !user) {
+    // User is not authenticated and trying to access protected route
+    console.log('Middleware: Redirecting unauthenticated user to login')
+    const redirectUrl = new URL('/login', request.url)
+    const response = NextResponse.redirect(redirectUrl, { request })
+    
+    // Copy cookies from supabaseResponse
+    supabaseResponse.cookies.getAll().forEach(cookie => {
+      response.cookies.set(cookie.name, cookie.value, cookie)
+    })
+    
+    return response
+  }
+
+  if (isAuthRoute && user && !request.nextUrl.pathname.startsWith('/auth/callback')) {
+    // User is authenticated and trying to access auth route (except callback)
+    // Let the client handle the redirect to avoid conflicts
+    console.log('Middleware: User authenticated on auth route, allowing client redirect')
+    return supabaseResponse
+  }
+
+  // Return the supabaseResponse for all other cases
   return supabaseResponse
 }
 
@@ -49,8 +84,10 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
+     * - api routes (handled separately)
+     * - public files
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Temporarily disable middleware to fix auth loops
+    // "/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 }

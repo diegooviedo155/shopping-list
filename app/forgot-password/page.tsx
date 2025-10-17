@@ -15,7 +15,7 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isEmailSent, setIsEmailSent] = useState(false)
-  const { showError, showSuccess, resetPassword } = useAuth()
+  const { showError, showSuccess, showInfo } = useAuth()
   const router = useRouter()
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -23,10 +23,11 @@ export default function ForgotPasswordPage() {
     setIsLoading(true)
     
     try {
-      await resetPassword(email)
+      // En lugar de enviar email de recuperación, mostrar mensaje informativo
+      showInfo('Función no disponible', 'El envío de emails de recuperación está deshabilitado. Por favor, contacta al administrador o usa la opción "Cambiar Contraseña" si ya estás logueado.')
       setIsEmailSent(true)
     } catch (error) {
-      // Error ya manejado en resetPassword
+      // Error ya manejado
     } finally {
       setIsLoading(false)
     }
@@ -58,11 +59,7 @@ export default function ForgotPasswordPage() {
               </h2>
               
               <p className="text-gray-400 mb-6">
-                Hemos enviado un enlace de recuperación a <strong>{email}</strong>
-              </p>
-              
-              <p className="text-sm text-gray-500 mb-6">
-                Revisa tu bandeja de entrada y sigue las instrucciones para restablecer tu contraseña.
+                El envío de emails de recuperación está deshabilitado. Si necesitas cambiar tu contraseña, por favor inicia sesión y usa la opción "Cambiar Contraseña" en el menú lateral.
               </p>
 
               <div className="space-y-3">

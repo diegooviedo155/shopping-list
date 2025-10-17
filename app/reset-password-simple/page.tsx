@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast'
 import Image from 'next/image'
 import Link from 'next/link'
 
-export default function ResetPasswordPage() {
+export default function ResetPasswordSimplePage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -20,74 +20,42 @@ export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const [isValidResetFlow, setIsValidResetFlow] = useState(false)
-  const [isCheckingSession, setIsCheckingSession] = useState(true)
+  const [isReady, setIsReady] = useState(false)
   const router = useRouter()
   const { showError, showSuccess } = useToast()
 
   useEffect(() => {
-    const checkResetFlow = async () => {
-      
-      // Add timeout to prevent infinite loading
-      const timeoutId = setTimeout(() => {
-        showError('Tiempo agotado', 'El enlace de recuperación tardó demasiado en procesarse.');
-        router.push('/forgot-password?error=timeout');
-      }, 10000); // 10 second timeout
-      
+    const checkSession = async () => {
       try {
-        // Check URL hash first
-        const hash = window.location.hash;
+        // Wait a bit for Supabase to process the URL hash
+        await new Promise(resolve => setTimeout(resolve, 2000))
         
-        if (!hash || !hash.includes('access_token')) {
-          showError('Enlace inválido', 'El enlace de recuperación no es válido.');
-          router.push('/forgot-password?error=no_token');
-          return;
-        }
-
-        // Parse the hash to get the recovery token
-        const params = new URLSearchParams(hash.substring(1));
-        const type = params.get('type');
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
-
-
-        if (type !== 'recovery' || !accessToken) {
-          showError('Enlace inválido', 'El enlace de recuperación no es válido.');
-          router.push('/forgot-password?error=invalid_token');
-          return;
-        }
-
-        // Set the session manually using the tokens from the URL
-        const { data, error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken || ''
-        });
-
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
         if (error) {
-          console.error('ResetPasswordPage: Error setting session:', error);
-          showError('Error de sesión', 'No se pudo establecer la sesión de recuperación.');
-          router.push('/forgot-password?error=session_error');
-          return;
+          console.error('Error getting session:', error)
+          showError('Error de sesión', 'No se pudo verificar la sesión.')
+          router.push('/forgot-password')
+          return
         }
-
-        if (data.session && data.session.user) {
-          setIsValidResetFlow(true);
+        
+        if (session && session.user) {
+          console.log('Session found for user:', session.user.email)
+          setIsReady(true)
         } else {
-          showError('Error de sesión', 'No se pudo establecer la sesión de recuperación.');
-          router.push('/forgot-password?error=no_session');
+          console.log('No session found')
+          showError('Sesión inválida', 'El enlace de recuperación no es válido o ha expirado.')
+          router.push('/forgot-password')
         }
       } catch (error) {
-        console.error('ResetPasswordPage: Unexpected error setting session:', error);
-        showError('Error', 'Ocurrió un error inesperado.');
-        router.push('/forgot-password?error=unexpected');
-      } finally {
-        clearTimeout(timeoutId);
-        setIsCheckingSession(false);
+        console.error('Error in checkSession:', error)
+        showError('Error', 'Ocurrió un error al verificar la sesión.')
+        router.push('/forgot-password')
       }
-    };
+    }
 
-    checkResetFlow();
-  }, [router, showError]);
+    checkSession()
+  }, [router, showError])
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -110,6 +78,7 @@ export default function ResetPasswordPage() {
     }
 
     try {
+      console.log('Attempting to update password...')
       
       const { data, error } = await supabase.auth.updateUser({
         password: password
@@ -121,6 +90,7 @@ export default function ResetPasswordPage() {
         return
       }
 
+      console.log('Password updated successfully:', data)
       setSuccess('Tu contraseña ha sido restablecida exitosamente.')
       showSuccess('Contraseña actualizada', 'Puedes iniciar sesión con tu nueva contraseña.')
       
@@ -136,40 +106,17 @@ export default function ResetPasswordPage() {
     }
   }
 
-  if (isCheckingSession) {
+  if (!isReady && !success) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-white mb-4">Verificando enlace de recuperación...</p>
           <p className="text-gray-400 text-sm mb-4">
-            Si esto tarda más de 10 segundos, el enlace puede ser inválido.
+            Esto puede tomar unos segundos...
           </p>
           <Link href="/forgot-password">
             <Button variant="outline" className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700">
-              Solicitar nuevo enlace
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isValidResetFlow && !success) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
-            <XCircle className="w-8 h-8 text-red-600" />
-          </div>
-          <h2 className="text-xl font-semibold text-white mb-2">
-            Enlace Inválido
-          </h2>
-          <p className="text-gray-400 mb-4">
-            El enlace de recuperación no es válido o ha expirado.
-          </p>
-          <Link href="/forgot-password">
-            <Button className="w-full bg-gray-700 hover:bg-gray-600 text-white">
               Solicitar nuevo enlace
             </Button>
           </Link>

@@ -13,7 +13,6 @@ export default function Page() {
   useEffect(() => {
     // Verificar si hay un access_token en el hash (fallback)
     if (window.location.hash && window.location.hash.includes('access_token')) {
-      console.log('Page: Detected access_token in hash, redirecting to callback')
       const hash = window.location.hash
       router.replace('/auth/callback' + hash)
     }

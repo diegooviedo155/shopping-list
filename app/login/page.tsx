@@ -21,9 +21,7 @@ export default function IniciarSesionPage() {
 
   // Redirect if already authenticated
   useEffect(() => {
-    console.log('Iniciar Sesión page - useEffect triggered:', { user: !!user, isLoading })
     if (user && !isLoading) {
-      console.log('Iniciar Sesión page - Redirecting to home...')
       // Direct navigation to avoid middleware conflicts
       window.location.href = '/'
     }
@@ -31,11 +29,8 @@ export default function IniciarSesionPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Iniciar Sesión page - handleLogin called')
     try {
-      console.log('Iniciar Sesión page - Calling login function...')
       await login(email, password)
-      console.log('Iniciar Sesión page - Login function completed')
       // The useEffect will handle the redirect when user state updates
     } catch (error) {
       console.error('Iniciar Sesión failed:', error)

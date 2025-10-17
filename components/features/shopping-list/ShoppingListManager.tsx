@@ -136,7 +136,6 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
 
     // Obtener items con búsqueda aplicada
     const searchedItems = itemsByStatusAndSearch(activeTab, searchQuery)
-    console.log('filteredItems recalculated:', searchedItems.length, 'items for tab:', activeTab)
 
     if (selectedCategory === 'all') {
       return searchedItems

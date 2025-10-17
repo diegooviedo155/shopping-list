@@ -70,9 +70,7 @@ export function useUnifiedShopping(): UseUnifiedShoppingReturn {
   
   // Inicialización automática solo una vez
   useEffect(() => {
-    console.log('useUnifiedShopping: useEffect triggered', { hasInitialized: store.hasInitialized })
     if (!store.hasInitialized) {
-      console.log('useUnifiedShopping: Starting initialization...')
       store.initialize().catch((error) => {
         console.error('useUnifiedShopping: Initialization error:', error)
       });

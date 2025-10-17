@@ -28,7 +28,6 @@ export async function middleware(request: NextRequest) {
   // Handle OAuth callback redirects (simplified)
   if (request.nextUrl.pathname === '/' && request.nextUrl.hash) {
     // Let the client-side JavaScript handle the OAuth redirect
-    console.log('Middleware: Detected hash in URL, allowing client-side handling')
   }
 
   // Get user session
@@ -44,6 +43,11 @@ export async function middleware(request: NextRequest) {
                      request.nextUrl.pathname.startsWith('/reset-password') ||
                      request.nextUrl.pathname.startsWith('/error')
   
+  // Special handling for reset-password page - don't redirect authenticated users
+  if (request.nextUrl.pathname === '/reset-password' && user) {
+    return supabaseResponse
+  }
+  
   const isProtectedRoute = !isAuthRoute && (
     request.nextUrl.pathname === '/' ||
     request.nextUrl.pathname.startsWith('/lists') ||
@@ -54,7 +58,6 @@ export async function middleware(request: NextRequest) {
   // Redirect logic
   if (isProtectedRoute && !user) {
     // User is not authenticated and trying to access protected route
-    console.log('Middleware: Redirecting unauthenticated user to login')
     const redirectUrl = new URL('/login', request.url)
     const response = NextResponse.redirect(redirectUrl, { request })
     
@@ -69,7 +72,6 @@ export async function middleware(request: NextRequest) {
   if (isAuthRoute && user && !request.nextUrl.pathname.startsWith('/auth/callback')) {
     // User is authenticated and trying to access auth route (except callback)
     // Let the client handle the redirect to avoid conflicts
-    console.log('Middleware: User authenticated on auth route, allowing client redirect')
     return supabaseResponse
   }
 

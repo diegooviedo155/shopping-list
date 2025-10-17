@@ -12,6 +12,7 @@ import { useToast } from '../../../hooks/use-toast'
 import { useAuth } from '../../auth/auth-provider'
 import { LoadingSpinner } from '@/components/loading-states'
 import { ErrorBoundary } from '@/components/error-boundary'
+import { ErrorHandler } from '@/components/error-handler'
 import { AddProductModal } from '@/components/modals'
 import { cn } from '@/lib/utils'
 import { ITEM_STATUS } from '@/lib/constants/item-status'
@@ -19,11 +20,11 @@ import { formatCategoryForUI } from '@/lib/constants/categories'
 import { Plus, ShoppingCart, Settings, ShoppingBasket } from 'lucide-react'
 
 export function HomePage() {
-  const router = useRouter()
-  const { items, categories, loading, error, itemsByCategory, addItem, refetch } = useUnifiedShopping()
-  const { showError, showSuccess } = useToast()
-  const [isHydrated, setIsHydrated] = useState(false)
-  const { user, isLoading: authLoading } = useAuth()
+      const router = useRouter()
+      const { items, categories, loading, error, itemsByCategory, addItem, refetch, clearError } = useUnifiedShopping()
+      const { showError, showSuccess } = useToast()
+      const [isHydrated, setIsHydrated] = useState(false)
+      const { user, isLoading: authLoading } = useAuth()
 
   // Manejar hidratación
   useEffect(() => {
@@ -78,6 +79,7 @@ export function HomePage() {
   return (
     <ProtectedRoute>
       <ErrorBoundary>
+        <ErrorHandler error={error} onClearError={clearError} />
         <SidebarLayout>
         <div>
 

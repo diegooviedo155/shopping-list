@@ -76,29 +76,22 @@ const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
 // Helper function to get authorization headers
 const getAuthHeaders = async (): Promise<Record<string, string>> => {
   try {
-    console.log('getAuthHeaders: Attempting to get Supabase session...')
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
     
     if (sessionError) {
-      console.error('getAuthHeaders: Error getting session:', sessionError)
-      return { 'Content-Type': 'application/json' }
+      throw new Error('No se pudo obtener la sesión de autenticación')
     }
     
     if (session?.access_token) {
-      console.log('getAuthHeaders: Session and access token found.')
       return {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`
       }
     } else {
-      console.log('getAuthHeaders: No session or access token found.')
+      throw new Error('Usuario no autenticado')
     }
   } catch (error) {
-    console.error('getAuthHeaders: Unexpected error getting auth token:', error)
-  }
-  
-  return {
-    'Content-Type': 'application/json'
+    throw error
   }
 }
 
@@ -134,15 +127,12 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
           initialize: async () => {
             const state = get();
             
-            console.log('Store - initialize called', { hasInitialized: state.hasInitialized, shouldFetch: state.shouldFetch() });
             
             // Verificar si hay sesión de Supabase antes de inicializar
             try {
               const { data: { session }, error } = await supabase.auth.getSession()
-              console.log('Store - Session check:', { hasSession: !!session, error: !!error, userEmail: session?.user?.email })
               
               if (!session || !session.user) {
-                console.log('Store - No session or user found, clearing data and skipping initialization')
                 set({ 
                   items: [],
                   categories: [],
@@ -167,17 +157,14 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
             }
             
             if (state.hasInitialized && !state.shouldFetch()) {
-              console.log('Store - Already initialized and no need to fetch');
               return;
             }
             
             try {
-              console.log('Store - Starting initialization...');
               await Promise.all([
                 state.fetchItems(false),
                 state.fetchCategories()
               ]);
-              console.log('Store - Initialization completed');
             } catch (error) {
               console.error('Store - Initialization error:', error);
             }
@@ -224,9 +211,7 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
             });
 
             try {
-              console.log('fetchItems: Getting auth headers...')
               const headers = await getAuthHeaders()
-              console.log('fetchItems: Headers obtained:', headers)
               
               const response = await fetch(API_BASE, {
                 method: 'GET',
@@ -234,11 +219,20 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
                 ...(force ? { cache: 'no-store' } : {})
               });
 
-              console.log('fetchItems: Response status:', response.status)
               if (!response.ok) {
                 const errorText = await response.text()
                 console.error('fetchItems: Error response:', errorText)
-                throw new Error(`Error ${response.status}: ${response.statusText}`);
+                
+                // Manejar errores específicos
+                if (response.status === 401) {
+                  throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.')
+                } else if (response.status === 403) {
+                  throw new Error('No tienes permisos para acceder a estos datos.')
+                } else if (response.status >= 500) {
+                  throw new Error('Error del servidor. Intenta nuevamente en unos minutos.')
+                } else {
+                  throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
               }
 
           const data = await response.json();
@@ -276,20 +270,39 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
           });
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-          set({ 
-            error: errorMessage, 
-            loading: false,
-            isRefreshing: false
-          });
+          console.error('fetchItems: Error:', errorMessage);
+          
+          // Si es un error de autenticación, limpiar datos y redirigir
+          if (errorMessage.includes('Sesión expirada') || errorMessage.includes('Usuario no autenticado')) {
+            set({ 
+              items: [],
+              categories: [],
+              error: errorMessage,
+              loading: false,
+              isRefreshing: false,
+              hasInitialized: false
+            });
+            
+            // Redirigir al login después de un breve delay
+            setTimeout(() => {
+              if (typeof window !== 'undefined') {
+                window.location.href = '/login'
+              }
+            }, 2000);
+          } else {
+            set({ 
+              error: errorMessage,
+              loading: false,
+              isRefreshing: false
+            });
+          }
         }
       },
 
           // Fetch de categorías
           fetchCategories: async () => {
             try {
-              console.log('Store - fetchCategories called');
               const headers = await getAuthHeaders()
-              console.log('Store - fetchCategories headers:', headers);
               const response = await fetch('/api/categories', {
                 method: 'GET',
                 headers,
@@ -300,14 +313,12 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
           }
 
           const data = await response.json();
-          console.log('Store - fetchCategories response:', data);
           
           if (!Array.isArray(data)) {
             throw new Error('Invalid categories response format');
           }
 
           set({ categories: data });
-          console.log('Store - categories set:', data.length);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Error al cargar categorías';
           console.error('Store - fetchCategories error:', errorMessage);
@@ -335,7 +346,19 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
               });
 
           if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
+            const errorText = await response.text()
+            console.error('addItem: Error response:', errorText)
+            
+            // Manejar errores específicos
+            if (response.status === 401) {
+              throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.')
+            } else if (response.status === 403) {
+              throw new Error('No tienes permisos para agregar items.')
+            } else if (response.status >= 500) {
+              throw new Error('Error del servidor. Intenta nuevamente en unos minutos.')
+            } else {
+              throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
           }
 
           const newItem = await response.json();
@@ -356,7 +379,26 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
           }));
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-          set({ error: errorMessage });
+          console.error('addItem: Error:', errorMessage);
+          
+          // Si es un error de autenticación, limpiar datos y redirigir
+          if (errorMessage.includes('Sesión expirada') || errorMessage.includes('Usuario no autenticado')) {
+            set({ 
+              items: [],
+              categories: [],
+              error: errorMessage,
+              hasInitialized: false
+            });
+            
+            // Redirigir al login después de un breve delay
+            setTimeout(() => {
+              if (typeof window !== 'undefined') {
+                window.location.href = '/login'
+              }
+            }, 2000);
+          } else {
+            set({ error: errorMessage });
+          }
         }
       },
 
@@ -513,8 +555,6 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
               ? { ...item, status: newStatus, updatedAt: new Date() }
               : item
           );
-          console.log('moveItemToStatus: Updated item', id, 'from', oldStatus, 'to', newStatus);
-          console.log('Updated items:', updatedItems.length);
           return { items: updatedItems };
         });
         

@@ -66,18 +66,6 @@ export default function IniciarSesionPage() {
           <h1 className="text-2xl font-bold text-white mb-2">
             Bienvenido a <span className="text-primary">Lo Que Falta</span>
           </h1>
-              <p className="text-gray-400">
-                No tienes una cuenta?{' '}
-                <Link href="/register" className="text-blue-400 hover:underline">
-                  Regístrate
-                </Link>
-              </p>
-              <p className="text-gray-400 mt-2">
-                ¿Olvidaste tu contraseña?{' '}
-                <Link href="/forgot-password" className="text-blue-400 hover:underline">
-                  Recuperar contraseña
-                </Link>
-              </p>
         </div>
 
         {/* Formulario de Iniciar Sesión */}
@@ -123,9 +111,16 @@ export default function IniciarSesionPage() {
                 </div>
               </div>
 
+              <p className="text-gray-400 mt-2 text-xs text-right">
+                ¿Olvidaste tu contraseña?{' '}
+                <Link href="/forgot-password" className="text-blue-400 hover:underline">
+                  Recuperar contraseña
+                </Link>
+              </p>
+
               <Button
                 type="submit"
-                className="w-full bg-gray-700 hover:bg-gray-600 text-white"
+                className="w-full bg-gray-700 hover:bg-gray-600 text-white mt-4"
                 disabled={isLoading}
               >
                 {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
@@ -142,7 +137,7 @@ export default function IniciarSesionPage() {
             {/* Iniciar Sesión Social */}
             <div className="space-y-3">
               <Button
-              disabled
+                disabled
                 onClick={handleAppleLogin}
                 variant="outline"
                 className="w-full bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
@@ -166,8 +161,8 @@ export default function IniciarSesionPage() {
         </Card>
 
         {/* Footer */}
-        {/* <div className="text-center mt-8 text-gray-400 text-sm">
-          <p>
+        <div className="text-center mt-8 text-gray-400 text-sm">
+          {/* <p>
             By clicking continue, you agree to our{' '}
             <Link href="/terms" className="text-blue-400 hover:underline">
               Terms of Service
@@ -176,8 +171,14 @@ export default function IniciarSesionPage() {
             <Link href="/privacy" className="text-blue-400 hover:underline">
               Privacy Policy
             </Link>
+          </p> */}
+          <p className="text-gray-400">
+            ¿No tenés una cuenta?{' '}
+            <Link href="/register" className="text-blue-400 hover:underline">
+              Registrate
+            </Link>
           </p>
-        </div> */}
+        </div>
       </div>
     </div>
   )

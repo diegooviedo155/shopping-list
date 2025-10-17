@@ -95,7 +95,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      if (data.user) {
+      if (data.user && data.session) {
+        setUser(data.user)
+        setSession(data.session)
         showSuccess('Inicio de sesión exitoso', 'Bienvenido de vuelta')
         await fetchProfile(data.user.id)
       }

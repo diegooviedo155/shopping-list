@@ -59,7 +59,7 @@ export async function middleware(request: NextRequest) {
   if (isProtectedRoute && !user) {
     // User is not authenticated and trying to access protected route
     const redirectUrl = new URL('/login', request.url)
-    const response = NextResponse.redirect(redirectUrl, { request })
+    const response = NextResponse.redirect(redirectUrl)
     
     // Copy cookies from supabaseResponse
     supabaseResponse.cookies.getAll().forEach(cookie => {
@@ -71,8 +71,16 @@ export async function middleware(request: NextRequest) {
 
   if (isAuthRoute && user && !request.nextUrl.pathname.startsWith('/auth/callback')) {
     // User is authenticated and trying to access auth route (except callback)
-    // Let the client handle the redirect to avoid conflicts
-    return supabaseResponse
+    // Redirect to home
+    const redirectUrl = new URL('/', request.url)
+    const response = NextResponse.redirect(redirectUrl)
+    
+    // Copy cookies from supabaseResponse
+    supabaseResponse.cookies.getAll().forEach(cookie => {
+      response.cookies.set(cookie.name, cookie.value, cookie)
+    })
+    
+    return response
   }
 
   // Return the supabaseResponse for all other cases
@@ -89,7 +97,7 @@ export const config = {
      * - api routes (handled separately)
      * - public files
      */
-    // Temporarily disable middleware to fix auth loops
+    // Temporarily disabled to avoid redirect loops
     // "/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 }

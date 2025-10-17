@@ -70,12 +70,6 @@ export default function RegisterPage() {
           <h1 className="text-2xl font-bold text-white mb-2">
             Crea tu cuenta en <span className="text-primary">Lo Que Falta</span>
           </h1>
-          <p className="text-gray-400">
-            ¿Ya tienes una cuenta?{' '}
-            <Link href="/login" className="text-blue-400 hover:underline">
-              Inicia sesión
-            </Link>
-          </p>
         </div>
 
         {/* Register Form */}
@@ -183,6 +177,7 @@ export default function RegisterPage() {
             {/* Iniciar Sesión Social */}
             <div className="space-y-3">
               <Button
+                disabled
                 onClick={handleAppleIniciarSesion}
                 variant="outline"
                 className="w-full bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
@@ -192,6 +187,7 @@ export default function RegisterPage() {
               </Button>
 
               <Button
+                disabled
                 onClick={handleGoogleIniciarSesion}
                 variant="outline"
                 className="w-full bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
@@ -206,8 +202,8 @@ export default function RegisterPage() {
         </Card>
 
         {/* Footer */}
-        {/* <div className="text-center mt-8 text-gray-400 text-sm">
-          <p>
+        <div className="text-center mt-8 text-gray-400 text-sm">
+          {/* <p>
             Al continuar, aceptas nuestros{' '}
             <Link href="/terms" className="text-blue-400 hover:underline">
               Términos de Servicio
@@ -216,8 +212,14 @@ export default function RegisterPage() {
             <Link href="/privacy" className="text-blue-400 hover:underline">
               Política de Privacidad
             </Link>
+          </p> */}
+          <p className="text-gray-400">
+            ¿Ya tenés una cuenta?{' '}
+            <Link href="/login" className="text-blue-400 hover:underline">
+              Inicia sesión
+            </Link>
           </p>
-        </div> */}
+        </div>
       </div>
     </div>
   )

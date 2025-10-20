@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -22,8 +22,6 @@ export const metadata: Metadata = {
   description: "Una aplicación móvil para gestionar tu lista de compras con múltiples categorías. Nunca olvides lo que necesitas comprar.",
   keywords: ["shopping", "listas", "compras", "organizador", "productos", "lo que falta", "carrito"],
   authors: [{ name: "Lo Que Falta Team" }],
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
-  themeColor: "#3B82F6",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -64,6 +62,14 @@ export const metadata: Metadata = {
   },
 }
 
+// Next.js 15: mover viewport y themeColor a este export dedicado
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: "#3B82F6",
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -71,9 +77,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="dark" suppressHydrationWarning>
-      <head>
-        <script src="/oauth-handler.js" defer></script>
-      </head>
+      <head>{/* oauth-handler eliminado para evitar 404 y recargas */}</head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

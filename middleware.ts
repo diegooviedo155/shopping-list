@@ -56,31 +56,16 @@ export async function middleware(request: NextRequest) {
   )
 
   // Redirect logic
+  // Importante: La sesión del cliente está en localStorage y el middleware solo ve cookies.
+  // Para evitar loops, NO redirigimos aquí cuando no hay usuario.
   if (isProtectedRoute && !user) {
-    // User is not authenticated and trying to access protected route
-    const redirectUrl = new URL('/login', request.url)
-    const response = NextResponse.redirect(redirectUrl)
-    
-    // Copy cookies from supabaseResponse
-    supabaseResponse.cookies.getAll().forEach(cookie => {
-      response.cookies.set(cookie.name, cookie.value, cookie)
-    })
-    
-    return response
+    return supabaseResponse
   }
 
   if (isAuthRoute && user && !request.nextUrl.pathname.startsWith('/auth/callback')) {
-    // User is authenticated and trying to access auth route (except callback)
-    // Redirect to home
-    const redirectUrl = new URL('/', request.url)
-    const response = NextResponse.redirect(redirectUrl)
-    
-    // Copy cookies from supabaseResponse
-    supabaseResponse.cookies.getAll().forEach(cookie => {
-      response.cookies.set(cookie.name, cookie.value, cookie)
-    })
-    
-    return response
+    // Evitar redirecciones desde middleware para no crear loops.
+    // Dejamos que el cliente redirija tras login exitoso.
+    return supabaseResponse
   }
 
   // Return the supabaseResponse for all other cases
@@ -89,15 +74,14 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - api routes (handled separately)
-     * - public files
-     */
-    // Temporarily disabled to avoid redirect loops
-    // "/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    '/',
+    '/lists/:path*',
+    '/admin/:path*',
+    '/categories/:path*',
+    '/login',
+    '/register',
+    '/auth/:path*',
+    '/forgot-password',
+    '/reset-password',
   ],
 }

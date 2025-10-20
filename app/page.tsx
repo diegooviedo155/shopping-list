@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { HomePage } from "@/components/features/home/HomePage"
+import { ProtectedRoute } from '@/components/auth/protected-route'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -18,5 +19,9 @@ export default function Page() {
     }
   }, [router])
 
-  return <HomePage />
+  return (
+    <ProtectedRoute>
+      <HomePage />
+    </ProtectedRoute>
+  )
 }

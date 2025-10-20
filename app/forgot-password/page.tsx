@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Mail } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
+import { GuestRoute } from '@/components/auth/guest-route'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -15,8 +16,10 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isEmailSent, setIsEmailSent] = useState(false)
-  const { showError, showSuccess, showInfo } = useAuth()
+  const { showError, showSuccess, showInfo, user } = useAuth()
   const router = useRouter()
+
+  // Se maneja con GuestRoute
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -89,6 +92,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
+    <GuestRoute>
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo/Icon */}
@@ -147,5 +151,6 @@ export default function ForgotPasswordPage() {
         </Card>
       </div>
     </div>
+    </GuestRoute>
   )
 }

@@ -19,15 +19,9 @@ export function PWAInstallPrompt() {
   const [isInstalled, setIsInstalled] = useState(false)
 
   useEffect(() => {
-    // Registrar service worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then((registration) => {
-          console.log('SW registrado exitosamente:', registration)
-        })
-        .catch((error) => {
-          console.log('Error registrando SW:', error)
-        })
+    // Registrar service worker solo en producción para evitar recargas en dev
+    if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {})
     }
 
     // Verificar si ya está instalado
@@ -49,12 +43,16 @@ export function PWAInstallPrompt() {
       setDeferredPrompt(null)
     }
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-    window.addEventListener('appinstalled', handleAppInstalled)
+    if (process.env.NODE_ENV === 'production') {
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      window.addEventListener('appinstalled', handleAppInstalled)
+    }
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-      window.removeEventListener('appinstalled', handleAppInstalled)
+      if (process.env.NODE_ENV === 'production') {
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+        window.removeEventListener('appinstalled', handleAppInstalled)
+      }
     }
   }, [])
 
@@ -78,7 +76,7 @@ export function PWAInstallPrompt() {
     setShowInstallPrompt(false)
   }
 
-  if (isInstalled || !showInstallPrompt) {
+  if (process.env.NODE_ENV !== 'production' || isInstalled || !showInstallPrompt) {
     return null
   }
 

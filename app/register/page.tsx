@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Apple, Mail, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
+import { GuestRoute } from '@/components/auth/guest-route'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -21,8 +22,9 @@ export default function RegisterPage() {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const { register, loginWithGoogle, loginWithApple, isLoading } = useAuth()
+  const { signUp, loginWithGoogle, loginWithApple, isLoading, user } = useAuth()
   const router = useRouter()
+  // Se maneja con GuestRoute
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -34,7 +36,7 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      await register(formData.name, formData.email, formData.password)
+      await signUp(formData.email, formData.password, formData.name)
       router.push('/')
     } catch (error) {
       console.error('Register failed:', error)
@@ -60,6 +62,7 @@ export default function RegisterPage() {
   }
 
   return (
+    <GuestRoute>
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo/Icon */}
@@ -222,5 +225,6 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+    </GuestRoute>
   )
 }

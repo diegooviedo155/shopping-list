@@ -8,9 +8,11 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Apple, Mail, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
+import { GuestRoute } from '@/components/auth/guest-route'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { supabase } from '@/lib/supabase/client'
 
 export default function IniciarSesionPage() {
   const [email, setEmail] = useState('')
@@ -19,11 +21,10 @@ export default function IniciarSesionPage() {
   const { login, loginWithGoogle, loginWithApple, isLoading, user } = useAuth()
   const router = useRouter()
 
-  // Redirect if already authenticated
+  // Si ya estás autenticado, no permitir ver la pantalla de login
   useEffect(() => {
-    if (user && !isLoading) {
-      // Direct navigation to avoid middleware conflicts
-      window.location.href = '/'
+    if (!isLoading && user) {
+      router.replace('/')
     }
   }, [user, isLoading, router])
 
@@ -31,7 +32,23 @@ export default function IniciarSesionPage() {
     e.preventDefault()
     try {
       await login(email, password)
-      // The useEffect will handle the redirect when user state updates
+      // Esperar hasta que la sesión esté disponible (máx ~2s) y luego redirigir
+      const start = Date.now()
+      let authed = false
+      while (Date.now() - start < 2000) {
+        const { data } = await supabase.auth.getUser()
+        if (data.user) {
+          authed = true
+          break
+        }
+        await new Promise(r => setTimeout(r, 100))
+      }
+      if (authed) {
+        router.replace('/')
+      } else {
+        // como fallback forzar reload
+        window.location.href = '/'
+      }
     } catch (error) {
       console.error('Iniciar Sesión failed:', error)
     }
@@ -40,7 +57,7 @@ export default function IniciarSesionPage() {
   const handleGoogleLogin = async () => {
     try {
       await loginWithGoogle()
-      // The useEffect will handle the redirect when user state updates
+      // OAuth redireccionará automáticamente
     } catch (error) {
       console.error('Google login failed:', error)
     }
@@ -49,13 +66,14 @@ export default function IniciarSesionPage() {
   const handleAppleLogin = async () => {
     try {
       await loginWithApple()
-      // The useEffect will handle the redirect when user state updates
+      // OAuth redireccionará automáticamente
     } catch (error) {
       console.error('Apple login failed:', error)
     }
   }
 
   return (
+    <GuestRoute>
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo/Icon */}
@@ -181,5 +199,6 @@ export default function IniciarSesionPage() {
         </div>
       </div>
     </div>
+    </GuestRoute>
   )
 }

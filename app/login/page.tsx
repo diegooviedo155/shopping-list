@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,13 +21,16 @@ export default function IniciarSesionPage() {
   const [showPassword, setShowPassword] = useState(false)
   const { login, loginWithGoogle, loginWithApple, isLoading, user } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectUrl = searchParams.get('redirect')
 
-  // Si ya estás autenticado, no permitir ver la pantalla de login
+  // Si ya estás autenticado, redirigir a la URL de destino o al home
   useEffect(() => {
     if (!isLoading && user) {
-      router.replace('/')
+      const destination = redirectUrl || '/'
+      router.replace(destination)
     }
-  }, [user, isLoading, router])
+  }, [user, isLoading, router, redirectUrl])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,10 +48,12 @@ export default function IniciarSesionPage() {
         await new Promise(r => setTimeout(r, 100))
       }
       if (authed) {
-        router.replace('/')
+        const destination = redirectUrl || '/'
+        router.replace(destination)
       } else {
         // como fallback forzar reload
-        window.location.href = '/'
+        const destination = redirectUrl || '/'
+        window.location.href = destination
       }
     } catch (error) {
       console.error('Iniciar Sesión failed:', error)

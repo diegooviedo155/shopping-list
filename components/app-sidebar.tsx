@@ -10,7 +10,10 @@ import {
   Plus,
   CheckCircle2,
   Circle,
-  Key
+  Key,
+  Users,
+  UserPlus,
+  ExternalLink
 } from "lucide-react"
 
 import {
@@ -47,6 +50,11 @@ const data = {
       icon: List,
     },
     {
+      title: "Listas Compartidas",
+      url: "/shared-lists",
+      icon: Users,
+    },
+    {
       title: "Categorías",
       url: "/admin/categories",
       icon: ShoppingCart,
@@ -61,15 +69,51 @@ const data = {
   ],
 }
 
+interface SharedList {
+  id: string
+  list_owner_id: string
+  list_name: string
+  owner_email: string
+  owner_name: string
+  granted_at: string
+}
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, logout } = useAuth()
   const { totalCount, completedCount } = useSupabaseShopping()
   const router = useRouter()
   const [isHydrated, setIsHydrated] = useState(false)
+  const [sharedLists, setSharedLists] = useState<SharedList[]>([])
+  const [loadingSharedLists, setLoadingSharedLists] = useState(false)
 
   useEffect(() => {
     setIsHydrated(true)
   }, [])
+
+  // Cargar listas compartidas
+  useEffect(() => {
+    const loadSharedLists = async () => {
+      if (!user) return
+      
+      setLoadingSharedLists(true)
+      try {
+        const response = await fetch('/api/shared-lists/my-access', {
+          credentials: 'include'
+        })
+        const data = await response.json()
+        
+        if (response.ok) {
+          setSharedLists(data.sharedLists || [])
+        }
+      } catch (error) {
+        console.error('Error loading shared lists:', error)
+      } finally {
+        setLoadingSharedLists(false)
+      }
+    }
+
+    loadSharedLists()
+  }, [user])
 
   const handleLogout = async () => {
     await logout()
@@ -144,6 +188,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroupContent>
         </SidebarGroup>
 
+
         <SidebarGroup>
           <SidebarGroupLabel>Acciones</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -159,6 +204,35 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Sección de Listas Compartidas */}
+        {sharedLists.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Listas Compartidas</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {sharedLists.map((sharedList) => (
+                  <SidebarMenuItem key={sharedList.id}>
+                    <SidebarMenuButton asChild>
+                      <Link 
+                        href={`/shared-list/${sharedList.list_owner_id}?list=${encodeURIComponent(sharedList.list_name)}`}
+                        className="flex items-center justify-between w-full"
+                      >
+                        <div className="flex items-center gap-2">
+                          <UserPlus className="size-4" />
+                          <span className="truncate">
+                            Lista de {sharedList.owner_name}
+                          </span>
+                        </div>
+                        <ExternalLink className="size-3 opacity-50" />
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         <SidebarGroup>
           <SidebarGroupLabel>Configuración</SidebarGroupLabel>

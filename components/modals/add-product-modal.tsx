@@ -28,7 +28,7 @@ import { Badge } from '@/components/ui/badge'
 import { Plus, Loader2, X, ShoppingCart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createItemSchema, type CreateItemInput } from '@/lib/validations/shopping'
-import { useUnifiedShopping } from '@/hooks/use-unified-shopping'
+import { useHybridShoppingSimple as useHybridShopping } from '@/hooks/use-hybrid-shopping-simple'
 import { ITEM_STATUS, ITEM_STATUS_LABELS } from '@/lib/constants/item-status'
 import { getIconEmoji, formatCategoryForUI } from '@/lib/constants/categories'
 
@@ -44,7 +44,7 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
   const [selectedCategory, setSelectedCategory] = useState<string>('')
   const [selectedStatus, setSelectedStatus] = useState<'este_mes' | 'proximo_mes'>('este_mes')
   
-  const { categories, loading: categoriesLoading } = useUnifiedShopping()
+  const { categories, loading: categoriesLoading, activeSharedList } = useHybridShopping()
 
   const {
     register,
@@ -121,7 +121,13 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
             Agregar Producto
           </DialogTitle>
           <DialogDescription>
-            Completa los datos del producto que quieres agregar a tu lista.
+            {activeSharedList ? (
+              <div>
+                Agregando a la lista compartida: <span className="font-semibold text-blue-600 dark:text-blue-400">{activeSharedList.name}</span>
+              </div>
+            ) : (
+              'Completa los datos del producto que quieres agregar a tu lista.'
+            )}
           </DialogDescription>
         </DialogHeader>
 

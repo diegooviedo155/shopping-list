@@ -7,7 +7,7 @@ import { Button, CategoryCardSkeleton } from '../../atoms'
 import { CategoryCard } from '../../organisms'
 import { SidebarLayout } from '../../sidebar-layout'
 import { ProtectedRoute } from '../../auth/protected-route'
-import { useUnifiedShopping } from '../../../hooks/use-unified-shopping'
+import { useHybridShoppingSimple as useHybridShopping } from '../../../hooks/use-hybrid-shopping-simple'
 import { useToast } from '../../../hooks/use-toast'
 import { useAuth } from '../../auth/auth-provider'
 import { LoadingSpinner } from '@/components/loading-states'
@@ -17,14 +17,28 @@ import { AddProductModal } from '@/components/modals'
 import { cn } from '@/lib/utils'
 import { ITEM_STATUS } from '@/lib/constants/item-status'
 import { formatCategoryForUI } from '@/lib/constants/categories'
-import { Plus, ShoppingCart, Settings, ShoppingBasket } from 'lucide-react'
+import { Plus, ShoppingCart, Settings, ShoppingBasket, Users } from 'lucide-react'
+import { ShareListButton, AccessRequestsPanel } from '../../shared-lists'
 
 export function HomePage() {
       const router = useRouter()
-      const { items, categories, loading, error, itemsByCategory, addItem, refetch, clearError } = useUnifiedShopping()
+      const { 
+        items, 
+        categories, 
+        loading, 
+        error, 
+        itemsByCategory, 
+        addItem, 
+        refetch, 
+        clearError,
+        activeSharedList,
+        sharedListItems,
+        sharedListLoading
+      } = useHybridShopping()
       const { showError, showSuccess } = useToast()
       const [isHydrated, setIsHydrated] = useState(false)
       const { user, isLoading: authLoading } = useAuth()
+      const [showAccessRequestsPanel, setShowAccessRequestsPanel] = useState(false)
 
   // Manejar hidratación
   useEffect(() => {
@@ -82,6 +96,27 @@ export function HomePage() {
         <ErrorHandler error={error} onClearError={clearError} />
         <SidebarLayout>
         <div>
+          {/* Indicador de Lista Compartida */}
+          {activeSharedList && (
+            <motion.div
+              className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <div>
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+                    Lista Compartida: {activeSharedList.name}
+                  </h3>
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    {activeSharedList.description || 'Colaborando en tiempo real'}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* Categories Grid */}
           <div>
@@ -177,6 +212,19 @@ export function HomePage() {
                 <Settings className="w-4 h-4" />
                 Gestionar Categorías
               </Button>
+              <ShareListButton 
+                listName="Mi Lista Personal"
+                className="cursor-pointer h-16"
+              />
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => setShowAccessRequestsPanel(true)}
+                className="cursor-pointer gap-2 h-16 text-white"
+              >
+                <Users className="w-4 h-4" />
+                Solicitudes de Acceso
+              </Button>
               <AddProductModal
                 onAddItem={handleAddItem}
                 isLoading={loading}
@@ -232,7 +280,13 @@ export function HomePage() {
               </div>
             </motion.div>
           </div>
-          </div>
+        </div>
+        
+        {/* Panel de solicitudes de acceso */}
+        <AccessRequestsPanel
+          isOpen={showAccessRequestsPanel}
+          onClose={() => setShowAccessRequestsPanel(false)}
+        />
         </SidebarLayout>
       </ErrorBoundary>
     </ProtectedRoute>

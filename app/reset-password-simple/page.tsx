@@ -40,10 +40,8 @@ export default function ResetPasswordSimplePage() {
         }
         
         if (session && session.user) {
-          console.log('Session found for user:', session.user.email)
           setIsReady(true)
         } else {
-          console.log('No session found')
           showError('Sesión inválida', 'El enlace de recuperación no es válido o ha expirado.')
           router.push('/forgot-password')
         }
@@ -78,8 +76,6 @@ export default function ResetPasswordSimplePage() {
     }
 
     try {
-      console.log('Attempting to update password...')
-      
       const { data, error } = await supabase.auth.updateUser({
         password: password
       })
@@ -90,7 +86,6 @@ export default function ResetPasswordSimplePage() {
         return
       }
 
-      console.log('Password updated successfully:', data)
       setSuccess('Tu contraseña ha sido restablecida exitosamente.')
       showSuccess('Contraseña actualizada', 'Puedes iniciar sesión con tu nueva contraseña.')
       

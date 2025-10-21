@@ -8,8 +8,6 @@ import {
   ShoppingCart,
   LogOut,
   Plus,
-  CheckCircle2,
-  Circle,
   Key,
   Users,
   UserPlus,
@@ -33,7 +31,6 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/components/auth/auth-provider"
-import { useSupabaseShopping } from "@/hooks/use-supabase-shopping"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 
@@ -86,15 +83,9 @@ interface SharedList {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, profile, logout } = useAuth()
-  const { totalCount, completedCount } = useSupabaseShopping()
   const router = useRouter()
-  const [isHydrated, setIsHydrated] = useState(false)
   const [sharedLists, setSharedLists] = useState<SharedList[]>([])
   const [loadingSharedLists, setLoadingSharedLists] = useState(false)
-
-  useEffect(() => {
-    setIsHydrated(true)
-  }, [])
 
   // Cargar listas compartidas
   useEffect(() => {
@@ -159,41 +150,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Estadísticas</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-4" />
-                      <span>Completados</span>
-                    </div>
-                    <span className="text-sm font-medium">
-                      {isHydrated ? completedCount : 0}
-                    </span>
-                  </div>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-2">
-                      <Circle className="size-4" />
-                      <span>Total</span>
-                    </div>
-                    <span className="text-sm font-medium">
-                      {isHydrated ? totalCount : 0}
-                    </span>
-                  </div>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
 
         <SidebarGroup>
           <SidebarGroupLabel>Acciones</SidebarGroupLabel>
@@ -263,10 +219,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* Información del usuario - Solo en web (al final) */}
         <div className="px-2 py-4 border-b border-sidebar-border">
           <div className="text-sm font-semibold text-white">
-            {isHydrated ? (profile?.full_name || user?.email?.split('@')[0] || 'Usuario') : 'Usuario'}
+            {profile?.full_name || user?.email?.split('@')[0] || 'Usuario'}
           </div>
           <div className="text-xs text-white/70 truncate">
-            {isHydrated ? (user?.email || 'usuario@ejemplo.com') : 'usuario@ejemplo.com'}
+            {user?.email || 'usuario@ejemplo.com'}
           </div>
         </div>
         

@@ -20,6 +20,9 @@ import { formatCategoryForUI } from '@/lib/constants/categories'
 import { Plus, ShoppingCart, Settings, ShoppingBasket, Users } from 'lucide-react'
 import { ShareListButton, AccessRequestsPanel } from '../../shared-lists'
 
+// Correo del administrador
+const ADMIN_EMAIL = "diegooviedo155@gmail.com"
+
 export function HomePage() {
       const router = useRouter()
       const { 
@@ -203,15 +206,17 @@ export function HomePage() {
 
                 Gestionar productos
               </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => router.push('/admin/categories')}
-                className="cursor-pointer gap-2 h-16 text-white"
-              >
-                <Settings className="w-4 h-4" />
-                Gestionar Categorías
-              </Button>
+              {user?.email === ADMIN_EMAIL && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => router.push('/admin/categories')}
+                  className="cursor-pointer gap-2 h-16 text-white"
+                >
+                  <Settings className="w-4 h-4" />
+                  Gestionar Categorías
+                </Button>
+              )}
               <ShareListButton 
                 listName="Mi Lista Personal"
                 className="cursor-pointer h-16"

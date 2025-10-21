@@ -59,7 +59,6 @@ export default function AuthCallback() {
               if (insertError) {
                 console.error('Error creating profile:', insertError)
                 // Don't fail the login if profile creation fails
-                console.warn('Profile creation failed, but continuing with login')
               }
             }
           } catch (profileError) {

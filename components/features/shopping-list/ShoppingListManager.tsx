@@ -473,7 +473,7 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
                               
                               // Verificar que el item tenga la estructura correcta
                               if (!item || !item.name) {
-                                console.warn('Item with invalid structure in render:', item)
+                                // Item with invalid structure - skip rendering
                                 return null
                               }
                               

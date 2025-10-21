@@ -13,7 +13,7 @@ import { ErrorBoundary } from '@/components/error-boundary'
 import { ErrorHandler } from '@/components/error-handler'
 import { AddProductModal } from '@/components/modals'
 import { cn } from '@/lib/utils'
-import { ITEM_STATUS } from '@/lib/constants/item-status'
+import { ITEM_STATUS, ITEM_STATUS_LABELS, ItemStatusType } from '@/lib/constants/item-status'
 import { formatCategoryForUI } from '@/lib/constants/categories'
 import { Plus, ShoppingCart, Settings, ShoppingBasket, Users } from 'lucide-react'
 import { ShareListButton, AccessRequestsPanel } from '../../shared-lists'
@@ -107,7 +107,7 @@ export function HomePageContent({ ownerId, isSharedView = false }: HomePageConte
 
   // Mostrar error si hay uno
   if (error) {
-    return <ErrorHandler error={error} onRetry={() => clearError()} />
+    return <ErrorHandler error={error} onClearError={() => clearError()} />
   }
 
   // Mostrar loading mientras cargan los datos
@@ -139,7 +139,6 @@ export function HomePageContent({ ownerId, isSharedView = false }: HomePageConte
   // Función para manejar agregar producto
   const handleAddProduct = () => {
     // Esta función se puede personalizar según el contexto
-    console.log('Agregar producto')
   }
 
   return (
@@ -163,6 +162,7 @@ export function HomePageContent({ ownerId, isSharedView = false }: HomePageConte
                   category={formatCategoryForUI(category)}
                   itemCount={categoryItems.length}
                   completedCount={completedInCategory}
+                  progress={categoryItems.length > 0 ? (completedInCategory / categoryItems.length) * 100 : 0}
                   onClick={() => handleCategoryClick(category.slug)}
                 />
               </motion.div>
@@ -233,7 +233,7 @@ export function HomePageContent({ ownerId, isSharedView = false }: HomePageConte
 
         {/* Lista de productos por estado */}
         <div className="space-y-6">
-          {Object.entries(ITEM_STATUS).map(([status, config]) => {
+          {Object.values(ITEM_STATUS).map((status) => {
             const statusItems = items.filter(item => item.status === status)
 
             if (statusItems.length === 0) return null
@@ -248,7 +248,7 @@ export function HomePageContent({ ownerId, isSharedView = false }: HomePageConte
               >
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <ShoppingCart className="w-5 h-5" />
-                  {config.label}
+                  {ITEM_STATUS_LABELS[status as ItemStatusType]}
                   <span className="text-sm text-muted-foreground">
                     ({statusItems.length} productos)
                   </span>

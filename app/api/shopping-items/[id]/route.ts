@@ -1,24 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase/server'
-import { getAuthenticatedUserId, getUserIdFromRequest } from '@/lib/auth/server-auth'
+import { createServerClient } from '@/lib/supabase/server'
 
-export async function PATCH(
+async function updateItem(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  params: Promise<{ id: string }>
 ) {
   try {
     const { id } = await params
     const body = await request.json()
 
-    // Intentar obtener el usuario autenticado de las cookies primero
-    let user_id = await getAuthenticatedUserId()
-    
-    // Si no se puede obtener de las cookies, intentar extraer del token JWT
-    if (!user_id) {
-      user_id = getUserIdFromRequest(request)
-    }
-    
-    if (!user_id) {
+    const supabase = await createServerClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized - User not authenticated' },
         { status: 401 }
@@ -29,7 +23,7 @@ export async function PATCH(
       .from('shopping_items')
       .update(body)
       .eq('id', id)
-      .eq('user_id', user_id) // Ensure RLS is respected
+      .eq('user_id', user.id)
       .select()
       .single()
 
@@ -47,12 +41,26 @@ export async function PATCH(
 
     return NextResponse.json(item)
   } catch (error) {
-    console.error('Error in shopping items PATCH API:', error)
+    console.error('Error in shopping items update API:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     )
   }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return updateItem(request, params)
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return updateItem(request, params)
 }
 
 export async function DELETE(
@@ -62,15 +70,10 @@ export async function DELETE(
   try {
     const { id } = await params
 
-    // Intentar obtener el usuario autenticado de las cookies primero
-    let user_id = await getAuthenticatedUserId()
-    
-    // Si no se puede obtener de las cookies, intentar extraer del token JWT
-    if (!user_id) {
-      user_id = getUserIdFromRequest(request)
-    }
-    
-    if (!user_id) {
+    const supabase = await createServerClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
       return NextResponse.json(
         { error: 'Unauthorized - User not authenticated' },
         { status: 401 }
@@ -81,7 +84,7 @@ export async function DELETE(
       .from('shopping_items')
       .delete()
       .eq('id', id)
-      .eq('user_id', user_id) // Ensure RLS is respected
+      .eq('user_id', user.id)
 
     if (error) {
       console.error('Error deleting shopping item:', error)

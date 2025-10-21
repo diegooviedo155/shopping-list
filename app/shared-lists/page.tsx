@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/components/auth/auth-provider'
-// import { useSharedLists } from '@/hooks/use-shared-lists'
+import { SidebarLayout } from '@/components/sidebar-layout'
 import Link from 'next/link'
 
 interface AccessRequest {
@@ -219,24 +219,23 @@ export default function SharedListsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p>Cargando listas compartidas...</p>
+      <SidebarLayout title="Listas Compartidas">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+            <p>Cargando listas compartidas...</p>
+          </div>
         </div>
-      </div>
+      </SidebarLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Listas Compartidas</h1>
-          <p className="text-muted-foreground">
-            Gestiona el acceso a tus listas y ve las listas que otros han compartido contigo
-          </p>
-        </div>
+    <SidebarLayout 
+      title="Listas Compartidas"
+      description="Gestiona el acceso a tus listas y ve las listas que otros han compartido contigo"
+    >
+      <div className="space-y-6">
 
         {/* Tabs */}
         <div className="flex gap-2 mb-8">
@@ -451,7 +450,7 @@ export default function SharedListsPage() {
         )}
 
         {/* Información adicional */}
-        <Alert className="mt-8">
+        <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             <strong>Gestión de acceso:</strong> Puedes aprobar o rechazar solicitudes de acceso a tus listas. 
@@ -459,6 +458,6 @@ export default function SharedListsPage() {
           </AlertDescription>
         </Alert>
       </div>
-    </div>
+    </SidebarLayout>
   )
 }

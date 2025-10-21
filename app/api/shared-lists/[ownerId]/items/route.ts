@@ -29,11 +29,12 @@ export async function GET(
       return NextResponse.json({ error: 'No tienes acceso a esta lista' }, { status: 403 })
     }
 
-    // Obtener los items del propietario
+    // Obtener solo los items de "este_mes" del propietario
     const { data: items, error } = await supabase
       .from('shopping_items')
       .select('*')
       .eq('user_id', ownerId)
+      .eq('status', 'este_mes')
       .order('created_at', { ascending: false })
 
     if (error) {

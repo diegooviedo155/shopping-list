@@ -24,60 +24,61 @@ interface HomePageContentProps {
 }
 
 export function HomePageContent({ ownerId, isSharedView = false }: HomePageContentProps = {}) {
-      const router = useRouter()
-      const { 
-        items, 
-        categories, 
-        loading, 
-        error, 
-        itemsByCategory, 
-        addItem, 
-        refetch, 
-        clearError,
-        activeSharedList,
-        sharedListItems,
-        sharedListLoading
-      } = useHybridShopping()
-      const { showError, showSuccess } = useToast()
-      const [isHydrated, setIsHydrated] = useState(false)
-      const [showAccessPanel, setShowAccessPanel] = useState(false)
-      const { user, isLoading: authLoading } = useAuth()
-      
-      // Estados para lista compartida
-      const [sharedItems, setSharedItems] = useState<any[]>([])
-      const [sharedCategories, setSharedCategories] = useState<any[]>([])
-      const [sharedLoading, setSharedLoading] = useState(false)
-      const [sharedLoaded, setSharedLoaded] = useState(false)
+  const router = useRouter()
+  const { user, profile } = useAuth()
+  const {
+    items,
+    categories,
+    loading,
+    error,
+    itemsByCategory,
+    addItem,
+    refetch,
+    clearError,
+    activeSharedList,
+    sharedListItems,
+    sharedListLoading
+  } = useHybridShopping()
+  const { showError, showSuccess } = useToast()
+  const [isHydrated, setIsHydrated] = useState(false)
+  const [showAccessPanel, setShowAccessPanel] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Estados para lista compartida
+  const [sharedItems, setSharedItems] = useState<any[]>([])
+  const [sharedCategories, setSharedCategories] = useState<any[]>([])
+  const [sharedLoading, setSharedLoading] = useState(false)
+  const [sharedLoaded, setSharedLoaded] = useState(false)
 
   // Manejar hidratación
   useEffect(() => {
     setIsHydrated(true)
   }, [])
-  
+
   // Cargar items del propietario si es una lista compartida
   useEffect(() => {
     const loadSharedItems = async () => {
       if (!ownerId || !isSharedView || sharedLoaded) return
-      
+
       setSharedLoading(true)
       try {
         // Cargar items del propietario usando el API de listas compartidas
         const itemsResponse = await fetch(`/api/shared-lists/${ownerId}/items`, {
           credentials: 'include'
         })
-        
+
         // Cargar categorías
         const categoriesResponse = await fetch('/api/categories', {
           credentials: 'include'
         })
-        
+
         if (!itemsResponse.ok) {
           throw new Error('Error al cargar items de la lista compartida')
         }
-        
+
         const itemsData = await itemsResponse.json()
         const categoriesData = await categoriesResponse.json()
-        
+
         setSharedItems(itemsData)
         setSharedCategories(categoriesData)
         setSharedLoaded(true)
@@ -88,7 +89,7 @@ export function HomePageContent({ ownerId, isSharedView = false }: HomePageConte
         setSharedLoading(false)
       }
     }
-    
+
     loadSharedItems()
   }, [ownerId, isSharedView, sharedLoaded])
 
@@ -100,7 +101,7 @@ export function HomePageContent({ ownerId, isSharedView = false }: HomePageConte
   }, [isSharedView, isHydrated, categories.length, loading, refetch])
 
   // Mostrar loading mientras se hidrata
-  if (!isHydrated || authLoading) {
+  if (!isHydrated || !user) {
     return <LoadingSpinner />
   }
 
@@ -125,7 +126,7 @@ export function HomePageContent({ ownerId, isSharedView = false }: HomePageConte
   // Usar datos compartidos si estamos en modo vista compartida
   const displayItems = isSharedView ? sharedItems : items
   const displayCategories = isSharedView ? sharedCategories : categories
-  
+
   // Calcular estadísticas
   const completedCount = displayItems.filter(item => item.status === 'completado').length
   const totalCount = displayItems.length
@@ -150,7 +151,7 @@ export function HomePageContent({ ownerId, isSharedView = false }: HomePageConte
             // Filtrar items por categoría
             const categoryItems = displayItems.filter(item => item.category_id === category.id)
             const completedInCategory = categoryItems.filter(item => item.status === 'completado').length
-            
+
             return (
               <motion.div
                 key={category.id}
@@ -173,27 +174,27 @@ export function HomePageContent({ ownerId, isSharedView = false }: HomePageConte
         <div className="flex flex-wrap gap-4 mb-8">
           {!isSharedView && (
             <>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => router.push('/lists')}
                 className="gap-2"
               >
                 <ShoppingBasket className="w-4 h-4" />
                 Gestionar productos
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => router.push('/admin/categories')}
                 className="gap-2"
               >
                 <Settings className="w-4 h-4" />
                 Gestionar Categorías
               </Button>
-              <ShareListButton 
-                listName="Mi Lista Personal"
+              <ShareListButton
+                listName={`Lista de ${profile?.full_name || user?.email?.split('@')[0] || 'Usuario'}`}
                 className="cursor-pointer h-16"
               />
-              <Button 
+              <Button
                 variant="outline"
                 onClick={() => setShowAccessPanel(true)}
                 className="gap-2"
@@ -201,15 +202,17 @@ export function HomePageContent({ ownerId, isSharedView = false }: HomePageConte
                 <Users className="w-4 h-4" />
                 Gestionar Acceso
               </Button>
+              <Button
+                onClick={handleAddProduct}
+                className="gap-2 bg-green-600 hover:bg-green-700"
+              >
+                <Plus className="w-4 h-4" />
+                Agregar Producto
+              </Button>
             </>
+
           )}
-          <Button 
-            onClick={handleAddProduct}
-            className="gap-2 bg-green-600 hover:bg-green-700"
-          >
-            <Plus className="w-4 h-4" />
-            Agregar Producto
-          </Button>
+
         </div>
 
         {/* Estadísticas */}
@@ -232,7 +235,7 @@ export function HomePageContent({ ownerId, isSharedView = false }: HomePageConte
         <div className="space-y-6">
           {Object.entries(ITEM_STATUS).map(([status, config]) => {
             const statusItems = items.filter(item => item.status === status)
-            
+
             if (statusItems.length === 0) return null
 
             return (
@@ -317,7 +320,7 @@ export function HomePageContent({ ownerId, isSharedView = false }: HomePageConte
       />
 
       {/* Panel de gestión de acceso */}
-      <AccessRequestsPanel 
+      <AccessRequestsPanel
         isOpen={showAccessPanel}
         onClose={() => setShowAccessPanel(false)}
       />

@@ -64,11 +64,6 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
         delete newUpdates[itemId]
         return newUpdates
       })
-      
-      showSuccess(
-        newStatus ? 'Producto completado' : 'Producto pendiente',
-        `Producto marcado como ${newStatus ? 'completado' : 'pendiente'}`
-      )
     } catch (err) {
       // Revertir cambio optimista en caso de error
       setOptimisticUpdates(prev => ({

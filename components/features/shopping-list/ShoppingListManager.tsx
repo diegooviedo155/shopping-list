@@ -204,17 +204,10 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
   const handleToggleCompleted = useCallback(async (id: string) => {
     try {
       await toggleItemCompleted(id)
-      const item = currentItems.find(item => item.id === id)
-      if (item) {
-        showSuccess(
-          item.completed ? 'Producto completado' : 'Producto pendiente',
-          `${item.name} marcado como ${item.completed ? 'completado' : 'pendiente'}`
-        )
-      }
     } catch (error) {
       showError('Error', 'No se pudo actualizar el producto')
     }
-  }, [toggleItemCompleted, currentItems, showSuccess, showError])
+  }, [toggleItemCompleted, showError])
 
   // Mostrar modal de confirmación para eliminar items seleccionados
   const handleDeleteSelected = useCallback(() => {

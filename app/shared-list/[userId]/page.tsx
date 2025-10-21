@@ -4,11 +4,8 @@ import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react'
-import Link from 'next/link'
+import { AlertCircle, CheckCircle } from 'lucide-react'
 import { HomePageContent } from '@/components/features/home/HomePageContent'
-import { SharedListSidebar } from '@/components/shared-list-sidebar'
 import { SidebarLayout } from '@/components/sidebar-layout'
 import { RequestAccessModal } from '@/components/shared-lists/request-access-modal'
 import { useAuth } from '@/components/auth/auth-provider'
@@ -17,7 +14,8 @@ export default function SharedListPage() {
   const params = useParams()
   const searchParams = useSearchParams()
   const router = useRouter()
-  const { user, loading: authLoading } = useAuth()
+  const { user } = useAuth()
+  const [authLoading, setAuthLoading] = useState(true)
   
   const [listName, setListName] = useState('')
   const [ownerName, setOwnerName] = useState('')
@@ -28,6 +26,13 @@ export default function SharedListPage() {
 
   const userId = params.userId as string
   const listParam = searchParams.get('list')
+
+  // Verificar estado de autenticación
+  useEffect(() => {
+    if (user !== null) {
+      setAuthLoading(false)
+    }
+  }, [user])
 
   // Redirigir al login si no está autenticado
   useEffect(() => {
@@ -113,48 +118,22 @@ export default function SharedListPage() {
   }
 
   return (
-    <SidebarLayout sidebar={<SharedListSidebar listName={listName} ownerName={ownerName} />}>
-      <div className="min-h-screen bg-background">
-        {/* Header con información de la lista compartida */}
-        <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <SharedListSidebar listName={listName} ownerName={ownerName} />
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/">
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Volver
-                  </Link>
-                </Button>
-                <div>
-                  <h1 className="text-lg font-semibold">Lista de {ownerName}</h1>
-                  <p className="text-sm text-muted-foreground">
-                    {listName || 'Lista Compartida'}
-                  </p>
-                </div>
-              </div>
-              <Alert className="max-w-md">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-xs">
-                  Modo colaborativo: puedes agregar productos
-                </AlertDescription>
-              </Alert>
-            </div>
+    <SidebarLayout 
+      title={`Lista de ${ownerName}`}
+      showBackButton={true}
+      onBack={() => window.location.href = '/'}
+    >
+      {/* Mostrar contenido según el acceso */}
+      {checkingAccess ? (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p>Verificando acceso...</p>
           </div>
         </div>
-
-        {/* Mostrar contenido según el acceso */}
-        {checkingAccess ? (
-          <div className="min-h-screen bg-background flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p>Verificando acceso...</p>
-            </div>
-          </div>
-            ) : hasAccess ? (
-              <HomePageContent ownerId={userId} isSharedView={true} />
-            ) : requestSent ? (
+      ) : hasAccess ? (
+        <HomePageContent ownerId={userId} isSharedView={true} />
+      ) : requestSent ? (
           <div className="min-h-screen bg-background flex items-center justify-center">
             <Card className="w-full max-w-md">
               <CardHeader className="text-center">
@@ -221,7 +200,6 @@ export default function SharedListPage() {
             </Card>
           </div>
         )}
-      </div>
 
       {/* Modal de solicitud de acceso */}
       <RequestAccessModal

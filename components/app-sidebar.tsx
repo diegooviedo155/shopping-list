@@ -34,6 +34,9 @@ import { useAuth } from "@/components/auth/auth-provider"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 
+// Correo del administrador
+const ADMIN_EMAIL = "diegooviedo155@gmail.com"
+
 // This is sample data.
 const data = {
   navMain: [
@@ -52,6 +55,8 @@ const data = {
       url: "/shared-lists",
       icon: Users,
     },
+  ],
+  navAdmin: [
     {
       title: "Categorías",
       url: "/admin/categories",
@@ -138,6 +143,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
             <SidebarMenu>
               {data.navMain.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <Link href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+              
+              {/* Menú de admin - Solo visible para el administrador */}
+              {user?.email === ADMIN_EMAIL && data.navAdmin.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <Link href={item.url}>

@@ -18,6 +18,9 @@ import { formatCategoryForUI } from '@/lib/constants/categories'
 import { Plus, ShoppingCart, Settings, ShoppingBasket, Users } from 'lucide-react'
 import { ShareListButton, AccessRequestsPanel } from '../../shared-lists'
 
+// Correo del administrador
+const ADMIN_EMAIL = "diegooviedo155@gmail.com"
+
 interface HomePageContentProps {
   ownerId?: string // ID del propietario de la lista compartida
   isSharedView?: boolean // Si es true, oculta botones de gestión
@@ -182,14 +185,16 @@ export function HomePageContent({ ownerId, isSharedView = false }: HomePageConte
                 <ShoppingBasket className="w-4 h-4" />
                 Gestionar productos
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => router.push('/admin/categories')}
-                className="gap-2"
-              >
-                <Settings className="w-4 h-4" />
-                Gestionar Categorías
-              </Button>
+              {user?.email === ADMIN_EMAIL && (
+                <Button
+                  variant="outline"
+                  onClick={() => router.push('/admin/categories')}
+                  className="gap-2"
+                >
+                  <Settings className="w-4 h-4" />
+                  Gestionar Categorías
+                </Button>
+              )}
               <ShareListButton
                 listName={`Lista de ${profile?.full_name || user?.email?.split('@')[0] || 'Usuario'}`}
                 className="cursor-pointer h-16"

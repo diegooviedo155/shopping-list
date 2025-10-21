@@ -13,7 +13,8 @@ import {
   Key,
   Users,
   UserPlus,
-  ExternalLink
+  ExternalLink,
+  User
 } from "lucide-react"
 
 import {
@@ -62,6 +63,11 @@ const data = {
   ],
   navConfig: [
     {
+      title: "Editar Perfil",
+      url: "/profile",
+      icon: User,
+    },
+    {
       title: "Cambiar Contraseña",
       url: "/change-password-simple",
       icon: Key,
@@ -79,7 +85,7 @@ interface SharedList {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user, logout } = useAuth()
+  const { user, profile, logout } = useAuth()
   const { totalCount, completedCount } = useSupabaseShopping()
   const router = useRouter()
   const [isHydrated, setIsHydrated] = useState(false)
@@ -257,7 +263,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* Información del usuario - Solo en web (al final) */}
         <div className="px-2 py-4 border-b border-sidebar-border">
           <div className="text-sm font-semibold text-white">
-            {isHydrated ? (user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario') : 'Usuario'}
+            {isHydrated ? (profile?.full_name || user?.email?.split('@')[0] || 'Usuario') : 'Usuario'}
           </div>
           <div className="text-xs text-white/70 truncate">
             {isHydrated ? (user?.email || 'usuario@ejemplo.com') : 'usuario@ejemplo.com'}

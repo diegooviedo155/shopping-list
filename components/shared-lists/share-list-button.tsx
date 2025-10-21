@@ -46,47 +46,34 @@ export function ShareListButton({ listName = "Mi Lista", className }: ShareListB
   }
 
   // Copiar enlace
-  const copyLink = async () => {
-    try {
-      // Crear un elemento temporal para copiar
-      const textArea = document.createElement('textarea')
-      textArea.value = shareLink
-      textArea.style.position = 'fixed'
-      textArea.style.left = '-999999px'
-      textArea.style.top = '-999999px'
-      textArea.style.opacity = '0'
-      textArea.style.pointerEvents = 'none'
-      document.body.appendChild(textArea)
+  const copyLink = () => {
+    // Obtener el input visible del DOM
+    const inputElement = document.getElementById('share-link-input') as HTMLInputElement
+    
+    if (inputElement) {
+      // Seleccionar el texto del input visible
+      inputElement.focus()
+      inputElement.select()
+      inputElement.setSelectionRange(0, 99999) // Para móviles
       
-      // Seleccionar y copiar
-      textArea.focus()
-      textArea.select()
-      textArea.setSelectionRange(0, 99999)
+      // Copiar
+      let success = false
+      try {
+        success = document.execCommand('copy')
+      } catch (err) {
+        console.error('Error al copiar:', err)
+      }
       
-      // Intentar copiar con execCommand (más compatible)
-      const successful = document.execCommand('copy')
-      document.body.removeChild(textArea)
-      
-      if (successful) {
+      // Mostrar resultado
+      if (success) {
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
-        setOpen(false)
         showSuccess('Éxito', 'Enlace copiado al portapapeles')
       } else {
-        // Si falla, intentar con la API moderna
-        if (navigator.clipboard && window.isSecureContext) {
-          await navigator.clipboard.writeText(shareLink)
-          setCopied(true)
-          setTimeout(() => setCopied(false), 2000)
-          setOpen(false)
-          showSuccess('Éxito', 'Enlace copiado al portapapeles')
-        } else {
-          throw new Error('No se pudo copiar')
-        }
+        showError('Error', 'No se pudo copiar. Selecciona el enlace y usa Ctrl+C.')
       }
-    } catch (err) {
-      console.error('Error copying to clipboard:', err)
-      showError('Error', 'No se pudo copiar automáticamente. Haz clic en el enlace y usa Ctrl+C para copiarlo.')
+    } else {
+      showError('Error', 'No se encontró el campo del enlace')
     }
   }
 
@@ -146,12 +133,10 @@ export function ShareListButton({ listName = "Mi Lista", className }: ShareListB
             <div className="space-y-2">
               <Label>Enlace de solicitud</Label>
               <Input
+                id="share-link-input"
                 value={shareLink}
                 readOnly
-                className="cursor-pointer"
-                onClick={(e) => {
-                  e.currentTarget.select()
-                }}
+                className="bg-muted"
               />
             </div>
           )}

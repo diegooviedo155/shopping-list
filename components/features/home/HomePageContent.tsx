@@ -220,24 +220,27 @@ export function HomePageContent({ ownerId, isSharedView = false }: HomePageConte
 
         </div>
 
-        {/* Estadísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-card p-6 rounded-lg border">
-            <div className="text-2xl font-bold text-orange-500">{totalCount}</div>
-            <p className="text-sm text-muted-foreground">Este Mes</p>
+        {/* Estadísticas - Solo visible en la lista propia */}
+        {!isSharedView && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="bg-card p-6 rounded-lg border">
+              <div className="text-2xl font-bold text-orange-500">{totalCount}</div>
+              <p className="text-sm text-muted-foreground">Este Mes</p>
+            </div>
+            <div className="bg-card p-6 rounded-lg border">
+              <div className="text-2xl font-bold text-green-500">{completedCount}</div>
+              <p className="text-sm text-muted-foreground">Completados</p>
+            </div>
+            <div className="bg-card p-6 rounded-lg border">
+              <div className="text-2xl font-bold text-blue-500">{displayCategories.length}</div>
+              <p className="text-sm text-muted-foreground">Categorías</p>
+            </div>
           </div>
-          <div className="bg-card p-6 rounded-lg border">
-            <div className="text-2xl font-bold text-green-500">{completedCount}</div>
-            <p className="text-sm text-muted-foreground">Completados</p>
-          </div>
-          <div className="bg-card p-6 rounded-lg border">
-            <div className="text-2xl font-bold text-blue-500">{displayCategories.length}</div>
-            <p className="text-sm text-muted-foreground">Categorías</p>
-          </div>
-        </div>
+        )}
 
-        {/* Lista de productos por estado */}
-        <div className="space-y-6">
+        {/* Lista de productos por estado - Solo visible en la lista propia */}
+        {!isSharedView && (
+          <div className="space-y-6">
           {Object.values(ITEM_STATUS).map((status) => {
             const statusItems = items.filter(item => item.status === status)
 
@@ -286,9 +289,10 @@ export function HomePageContent({ ownerId, isSharedView = false }: HomePageConte
               </motion.div>
             )
           })}
-        </div>
+          </div>
+        )}
 
-        {items.length === 0 && (
+        {!isSharedView && items.length === 0 && (
           <div className="text-center py-12">
             <ShoppingCart className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">Lista vacía</h3>

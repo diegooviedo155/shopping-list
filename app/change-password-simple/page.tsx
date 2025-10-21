@@ -9,8 +9,9 @@ import { Eye, EyeOff, CheckCircle, XCircle, ArrowLeft } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
-import Image from 'next/image'
+import { SidebarLayout } from '@/components/sidebar-layout'
 import { useAuth } from '@/components/auth/auth-provider'
+import { goBack } from '@/lib/utils'
 
 export default function ChangePasswordSimplePage() {
   const [newPassword, setNewPassword] = useState('')
@@ -116,12 +117,14 @@ export default function ChangePasswordSimplePage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-white">Verificando autenticación...</p>
+      <SidebarLayout title="Cargando...">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-white">Verificando autenticación...</p>
+          </div>
         </div>
-      </div>
+      </SidebarLayout>
     )
   }
 
@@ -130,23 +133,11 @@ export default function ChangePasswordSimplePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 mx-auto mb-4 bg-white rounded-lg flex items-center justify-center">
-            <Image src="/logo-sin-fondo.png" alt="Logo" width={120} height={120} />
-          </div>
-          <h1 className="text-2xl font-bold text-white mb-2">
-            Cambiar Contraseña
-          </h1>
-          <p className="text-gray-400">
-            Actualiza tu contraseña de forma segura.
-          </p>
-          <p className="text-gray-500 text-sm mt-2">
-            La nueva contraseña debe ser diferente a tu contraseña actual.
-          </p>
-        </div>
-
+    <SidebarLayout 
+      title="Cambiar Contraseña"
+      description="Actualiza tu contraseña de forma segura. La nueva contraseña debe ser diferente a tu contraseña actual."
+    >
+      <div className="max-w-md mx-auto">
         <Card className="bg-background border-none">
           <CardContent className="p-6">
             {success ? (
@@ -154,10 +145,10 @@ export default function ChangePasswordSimplePage() {
                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
                 <p className="text-white text-lg mb-4">{success}</p>
                 <Button
-                  onClick={() => router.push('/')}
+                  onClick={() => goBack(router)}
                   className="w-full bg-gray-700 hover:bg-gray-600 text-white"
                 >
-                  Volver al Inicio
+                  Volver
                 </Button>
               </div>
             ) : (
@@ -243,11 +234,11 @@ export default function ChangePasswordSimplePage() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => router.push('/')}
+                    onClick={() => goBack(router)}
                     className="w-full bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" />
-                    Volver al Inicio
+                    Volver
                   </Button>
                 </div>
               </form>
@@ -255,6 +246,6 @@ export default function ChangePasswordSimplePage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </SidebarLayout>
   )
 }

@@ -9,6 +9,7 @@ import { HomePageContent } from '@/components/features/home/HomePageContent'
 import { SidebarLayout } from '@/components/sidebar-layout'
 import { RequestAccessModal } from '@/components/shared-lists/request-access-modal'
 import { useAuth } from '@/components/auth/auth-provider'
+import { goBack } from '@/lib/utils'
 
 export default function SharedListPage() {
   const params = useParams()
@@ -161,10 +162,10 @@ export default function SharedListPage() {
                     </Button>
                     <Button 
                       variant="outline"
-                      onClick={() => window.location.href = '/'}
+                      onClick={() => goBack(router)}
                       className="flex-1"
                     >
-                      Volver al Inicio
+                      Volver
                     </Button>
                   </div>
                 </div>

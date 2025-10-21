@@ -94,11 +94,30 @@ export default function SharedListPage() {
     checkAccess()
   }, [user, userId])
 
-  // Simular obtener información del propietario
+  // Obtener información del propietario desde la base de datos
   useEffect(() => {
-    // En una implementación real, aquí harías una llamada a la API
-    // para obtener el nombre del propietario basado en el userId
-    setOwnerName('Usuario')
+    const fetchOwnerInfo = async () => {
+      try {
+        const response = await fetch(`/api/profiles/${userId}`, {
+          credentials: 'include'
+        })
+        
+        if (response.ok) {
+          const profile = await response.json()
+          const name = profile.full_name || profile.email?.split('@')[0] || 'Usuario'
+          setOwnerName(name)
+        } else {
+          setOwnerName('Usuario')
+        }
+      } catch (error) {
+        console.error('Error fetching owner info:', error)
+        setOwnerName('Usuario')
+      }
+    }
+
+    if (userId) {
+      fetchOwnerInfo()
+    }
   }, [userId])
 
   // Mostrar loading mientras se verifica la autenticación

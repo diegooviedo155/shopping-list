@@ -163,7 +163,7 @@ export function HomePageContent({ ownerId, isSharedView = false }: HomePageConte
                   itemCount={categoryItems.length}
                   completedCount={completedInCategory}
                   progress={categoryItems.length > 0 ? (completedInCategory / categoryItems.length) * 100 : 0}
-                  onClick={() => handleCategoryClick(category.slug)}
+                  onClick={isSharedView ? undefined : () => handleCategoryClick(category.slug)}
                 />
               </motion.div>
             )
@@ -298,26 +298,28 @@ export function HomePageContent({ ownerId, isSharedView = false }: HomePageConte
         )}
       </div>
 
-      {/* Floating Action Button con Modal */}
-      <AddProductModal
-        onAddItem={async (data) => {
-          try {
-            await addItem(data.name, data.categoryId, data.status)
-            showSuccess('Producto agregado', `${data.name} se agregó a la lista`)
-          } catch (err) {
-            showError('Error', 'No se pudo agregar el producto')
+      {/* Floating Action Button con Modal - Solo visible en la lista propia */}
+      {!isSharedView && (
+        <AddProductModal
+          onAddItem={async (data) => {
+            try {
+              await addItem(data.name, data.categoryId, data.status)
+              showSuccess('Producto agregado', `${data.name} se agregó a la lista`)
+            } catch (err) {
+              showError('Error', 'No se pudo agregar el producto')
+            }
+          }}
+          isLoading={loading}
+          trigger={
+            <Button
+              size="lg"
+              className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+            >
+              <Plus className="w-6 h-6" />
+            </Button>
           }
-        }}
-        isLoading={loading}
-        trigger={
-          <Button
-            size="lg"
-            className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
-          >
-            <Plus className="w-6 h-6" />
-          </Button>
-        }
-      />
+        />
+      )}
 
       {/* Panel de gestión de acceso */}
       <AccessRequestsPanel

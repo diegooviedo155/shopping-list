@@ -18,6 +18,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: "Lo Que Falta - Lista de Compras",
   description: "Una aplicación móvil para gestionar tu lista de compras con múltiples categorías. Nunca olvides lo que necesitas comprar.",
   keywords: ["shopping", "listas", "compras", "organizador", "productos", "lo que falta", "carrito"],

@@ -47,8 +47,8 @@ function ErrorContent() {
       <div className="w-full max-w-md">
         {/* Logo/Icon */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 mx-auto mb-4 bg-white rounded-lg flex items-center justify-center">
-            <Image src="/logo-sin-fondo.png" alt="Logo" width={120} height={120} />
+          <div className="w-20 h-20 mx-auto mb-4 bg-white flex items-center justify-center rounded-lg overflow-hidden">
+            <Image src="/logo-gif.gif" alt="Logo" width={120} height={120} />
           </div>
           <h1 className="text-2xl font-bold text-white mb-2">
             <span className="text-primary">Lo Que Falta</span>

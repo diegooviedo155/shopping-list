@@ -11,6 +11,7 @@ import { DeleteConfirmationModal } from '../../modals/DeleteConfirmationModal'
 import { useUnifiedShopping } from '../../../hooks/use-unified-shopping'
 import { useToast } from '../../../hooks/use-toast'
 import { LoadingOverlay } from '@/components/loading-states'
+import { LoadingSpinner } from '@/components/loading-spinner'
 import { ErrorBoundary, ShoppingListErrorFallback } from '@/components/error-boundary'
 import { cn } from '@/lib/utils'
 import { Calendar, CalendarDays, Trash2, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react'
@@ -413,9 +414,7 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
 
                 {/* Items grouped by category */}
                 {!isHydrated ? (
-                  <div className="text-center py-12">
-                    <p className="text-muted-foreground">Cargando...</p>
-                  </div>
+                  <LoadingSpinner title="Cargando productos..." />
                 ) : filteredItems.length === 0 ? (
                     <div className="text-center py-12">
                       <p className="text-muted-foreground">

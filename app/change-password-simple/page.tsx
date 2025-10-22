@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast'
 import { SidebarLayout } from '@/components/sidebar-layout'
 import { useAuth } from '@/components/auth/auth-provider'
 import { goBack } from '@/lib/utils'
+import { LoadingSpinner } from '@/components/loading-spinner'
 
 export default function ChangePasswordSimplePage() {
   const [newPassword, setNewPassword] = useState('')
@@ -116,16 +117,7 @@ export default function ChangePasswordSimplePage() {
   }
 
   if (authLoading) {
-    return (
-      <SidebarLayout title="Cargando...">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-white">Verificando autenticación...</p>
-          </div>
-        </div>
-      </SidebarLayout>
-    )
+    return <LoadingSpinner title="Verificando autenticación..." />
   }
 
   if (!user) {

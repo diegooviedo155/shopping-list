@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
 import Image from 'next/image'
 import Link from 'next/link'
+import { LoadingSpinner } from '@/components/loading-spinner'
 
 export default function ResetPasswordSimplePage() {
   const [password, setPassword] = useState('')
@@ -102,22 +103,7 @@ export default function ResetPasswordSimplePage() {
   }
 
   if (!isReady && !success) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-white mb-4">Verificando enlace de recuperación...</p>
-          <p className="text-gray-400 text-sm mb-4">
-            Esto puede tomar unos segundos...
-          </p>
-          <Link href="/forgot-password">
-            <Button variant="outline" className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700">
-              Solicitar nuevo enlace
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner title="Verificando enlace de recuperación..." message="Esto puede tomar unos segundos..." />
   }
 
   return (

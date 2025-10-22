@@ -7,6 +7,7 @@ import { useAuth } from '@/components/auth/auth-provider'
 import { useEffect } from 'react'
 import { AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { LoadingSpinner } from '@/components/loading-spinner'
 
 // Correo del administrador
 const ADMIN_EMAIL = "diegooviedo155@gmail.com"
@@ -28,14 +29,7 @@ export default function CategoriesAdminPage() {
 
   // Mostrar loading mientras se verifica
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Verificando permisos...</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner title="Verificando permisos..." />
   }
 
   // Mostrar error si no es admin

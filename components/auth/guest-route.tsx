@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from './auth-provider'
+import { LoadingSpinner } from '@/components/loading-spinner'
 
 interface GuestRouteProps {
   children: React.ReactNode
@@ -24,14 +25,7 @@ export function GuestRoute({ children }: GuestRouteProps) {
   }, [user, isLoading, router])
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Verificando autenticación...</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner title="Verificando autenticación..." />
   }
 
   if (user) {

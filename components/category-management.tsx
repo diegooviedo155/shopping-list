@@ -28,6 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { LoadingSpinner } from '@/components/loading-spinner'
 
 export function CategoryManagement() {
   const [categories, setCategories] = useState<Category[]>([])
@@ -186,12 +187,7 @@ export function CategoryManagement() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <span className="ml-3 text-lg font-medium text-foreground">Cargando categorías...</span>
-      </div>
-    )
+    return <LoadingSpinner title="Cargando categorías..." />
   }
 
   if (error) {

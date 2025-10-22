@@ -10,6 +10,7 @@ import { SidebarLayout } from '@/components/sidebar-layout'
 import { RequestAccessModal } from '@/components/shared-lists/request-access-modal'
 import { useAuth } from '@/components/auth/auth-provider'
 import { goBack } from '@/lib/utils'
+import { LoadingSpinner } from '@/components/loading-spinner'
 
 export default function SharedListPage() {
   const params = useParams()
@@ -122,14 +123,7 @@ export default function SharedListPage() {
 
   // Mostrar loading mientras se verifica la autenticación
   if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Verificando autenticación...</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner title="Verificando autenticación..." />
   }
 
   // Si no está autenticado, no mostrar nada (ya se redirigió)
@@ -145,12 +139,7 @@ export default function SharedListPage() {
     >
       {/* Mostrar contenido según el acceso */}
       {checkingAccess ? (
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p>Verificando acceso...</p>
-          </div>
-        </div>
+        <LoadingSpinner title="Verificando acceso..." />
       ) : hasAccess ? (
         <HomePageContent ownerId={userId} isSharedView={true} />
       ) : requestSent ? (

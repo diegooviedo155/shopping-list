@@ -10,7 +10,8 @@ import { ProtectedRoute } from '../../auth/protected-route'
 import { useHybridShoppingSimple as useHybridShopping } from '../../../hooks/use-hybrid-shopping-simple'
 import { useToast } from '../../../hooks/use-toast'
 import { useAuth } from '../../auth/auth-provider'
-import { LoadingSpinner } from '@/components/loading-states'
+import { LoadingSpinner as LoadingSpinnerOld } from '@/components/loading-states'
+import { LoadingSpinner } from '@/components/loading-spinner'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { ErrorHandler } from '@/components/error-handler'
 import { AddProductModal } from '@/components/modals'
@@ -83,14 +84,7 @@ export function HomePage() {
 
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <LoadingSpinner size="lg" className="mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Cargando productos...</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner title="Cargando productos..." />
   }
 
   return (

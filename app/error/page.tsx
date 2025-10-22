@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertTriangle, Home, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { LoadingSpinner } from '@/components/loading-spinner'
 
 function ErrorContent() {
   const router = useRouter()
@@ -102,14 +103,7 @@ function ErrorContent() {
 
 export default function ErrorPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-white">Cargando...</p>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<LoadingSpinner />}>
       <ErrorContent />
     </Suspense>
   )

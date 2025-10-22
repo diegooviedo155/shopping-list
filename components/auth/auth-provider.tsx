@@ -145,7 +145,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = async () => {
-    setIsLoading(true)
     try {
       // Limpiar el store antes de hacer logout
       if (typeof window !== 'undefined') {
@@ -173,8 +172,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Logout failed:', error)
       showError('Error al cerrar sesión', 'No se pudo cerrar sesión')
-    } finally {
-      setIsLoading(false)
     }
   }
 

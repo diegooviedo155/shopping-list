@@ -20,6 +20,7 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/components/auth/auth-provider'
 import { SidebarLayout } from '@/components/sidebar-layout'
+import { LoadingSpinner } from '@/components/loading-spinner'
 import Link from 'next/link'
 
 interface AccessRequest {
@@ -218,16 +219,7 @@ export default function SharedListsPage() {
   const approvedRequests = accessRequests.filter(req => req.status === 'approved')
 
   if (loading) {
-    return (
-      <SidebarLayout title="Listas Compartidas">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-            <p>Cargando listas compartidas...</p>
-          </div>
-        </div>
-      </SidebarLayout>
-    )
+    return <LoadingSpinner title="Cargando listas compartidas..." />
   }
 
   return (

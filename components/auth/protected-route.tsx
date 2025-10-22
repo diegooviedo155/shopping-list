@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from './auth-provider'
-import { LoadingSpinner } from '@/components/loading-states'
+import { LoadingSpinner as LoadingSpinnerNew } from '@/components/loading-spinner'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -21,14 +21,7 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
   }, [user, isLoading, router])
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <LoadingSpinner size="lg" className="mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Verificando autenticación...</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinnerNew title="Verificando autenticación..." />
   }
 
   if (!user) {

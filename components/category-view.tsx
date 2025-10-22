@@ -8,6 +8,7 @@ import { Checkbox } from "./ui/checkbox"
 import { Badge } from "./ui/badge"
 import { SidebarLayout } from "./sidebar-layout"
 import { LoadingOverlay } from "./loading-states"
+import { LoadingSpinner } from "./loading-spinner"
 import { FloatingActionButton, SearchInput } from "./atoms"
 import { AddProductModal } from "./modals"
 import { useUnifiedCategoryView, useUnifiedShopping } from "../hooks/use-unified-shopping"
@@ -112,20 +113,7 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
   }, [items, optimisticUpdates])
 
   if (categoryStats.isLoading) {
-    return (
-      <SidebarLayout 
-        title={categoryName}
-        showBackButton
-        onBack={onBack}
-      >
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-muted-foreground">Cargando productos...</p>
-          </div>
-        </div>
-      </SidebarLayout>
-    )
+    return <LoadingSpinner title="Cargando productos..." />
   }
 
   if (error) {

@@ -50,36 +50,98 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null
+    let subscription: { unsubscribe: () => void } | null = null
+
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setSession(session)
-      setUser(session?.user ?? null)
+      try {
+        // Agregar timeout para evitar que se quede colgado
+        const sessionPromise = supabase.auth.getSession()
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error('Session check timeout')), 3000)
+        })
 
-      if (session?.user) {
-        await fetchProfile(session.user.id)
-      }
+        const result = await Promise.race([sessionPromise, timeoutPromise])
+        const { data: { session }, error } = result as { data: { session: Session | null }, error: any }
 
-      setIsLoading(false)
-    }
+        if (error) {
+          console.warn('Error getting session:', error)
+          // Limpiar tokens inválidos del localStorage
+          if (typeof window !== 'undefined') {
+            try {
+              const keys = Object.keys(localStorage)
+              keys.forEach(key => {
+                if (key.includes('supabase') || key.includes('auth')) {
+                  localStorage.removeItem(key)
+                }
+              })
+            } catch (e) {
+              console.warn('Error clearing localStorage:', e)
+            }
+          }
+          setSession(null)
+          setUser(null)
+          setIsLoading(false)
+          return
+        }
 
-    getInitialSession()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: any, session: any) => {
         setSession(session)
         setUser(session?.user ?? null)
 
         if (session?.user) {
           await fetchProfile(session.user.id)
-        } else {
-          setProfile(null)
         }
-
+      } catch (error) {
+        // Si hay timeout o cualquier otro error, continuar sin sesión
+        console.warn('Session check failed:', error instanceof Error ? error.message : 'Unknown error')
+        // Limpiar tokens inválidos
+        if (typeof window !== 'undefined') {
+          try {
+            const keys = Object.keys(localStorage)
+            keys.forEach(key => {
+              if (key.includes('supabase') || key.includes('auth')) {
+                localStorage.removeItem(key)
+              }
+            })
+          } catch (e) {
+            // Ignorar errores al limpiar
+          }
+        }
+        setSession(null)
+        setUser(null)
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId)
         setIsLoading(false)
       }
-    )
+    }
 
-    return () => subscription.unsubscribe()
+    getInitialSession()
+
+    try {
+      const { data } = supabase.auth.onAuthStateChange(
+        async (event: any, session: any) => {
+          setSession(session)
+          setUser(session?.user ?? null)
+
+          if (session?.user) {
+            await fetchProfile(session.user.id)
+          } else {
+            setProfile(null)
+          }
+
+          setIsLoading(false)
+        }
+      )
+      subscription = data
+    } catch (error) {
+      console.warn('Error setting up auth state listener:', error)
+      setIsLoading(false)
+    }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId)
+      if (subscription) subscription.unsubscribe()
+    }
   }, [fetchProfile])
 
   const login = async (email: string, password: string) => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from './auth-provider'
 import { LoadingSpinner as LoadingSpinnerNew } from '@/components/loading-spinner'
@@ -13,14 +13,28 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth()
   const router = useRouter()
+  const [hasTimedOut, setHasTimedOut] = useState(false)
+
+  // Timeout de seguridad: si después de 5 segundos sigue cargando, asumir que no hay sesión
+  useEffect(() => {
+    if (isLoading) {
+      const timeout = setTimeout(() => {
+        setHasTimedOut(true)
+      }, 5000)
+
+      return () => clearTimeout(timeout)
+    } else {
+      setHasTimedOut(false)
+    }
+  }, [isLoading])
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if ((!isLoading || hasTimedOut) && !user) {
       router.push('/login')
     }
-  }, [user, isLoading, router])
+  }, [user, isLoading, hasTimedOut, router])
 
-  if (isLoading) {
+  if (isLoading && !hasTimedOut) {
     return <LoadingSpinnerNew title="Verificando autenticación..." />
   }
 

@@ -1,102 +1,212 @@
-# Shopping Lists App
+# Lo Que Falta - Lista de Compras
 
-Una aplicación móvil para gestionar listas de compras con múltiples categorías y funcionalidad drag and drop.
+Una aplicación móvil moderna para gestionar tu lista de compras con múltiples categorías. Nunca olvides lo que necesitas comprar.
 
-## Características
+## 🚀 Inicio Rápido
 
-- 📱 Diseño móvil responsive
-- 🏪 Múltiples categorías (Supermercado, Verdulería, Carnicería)
-- 📅 Planificación mensual (Este mes / Próximo mes)
-- ✅ Marcar productos como comprados
-- 🔄 Drag and drop para reordenar
-- 💾 Persistencia con Supabase y Prisma ORM
-- ⚡ API Routes optimizadas
+### 1. Instalar Dependencias
+```bash
+pnpm install
+```
 
-## Configuración
+### 2. Ejecutar en Desarrollo
+```bash
+pnpm dev
+```
 
-### 1. Configurar Supabase
+La aplicación estará disponible en [http://localhost:3000](http://localhost:3000)
 
-1. Ve a Project Settings en v0 (ícono de engranaje en la esquina superior derecha)
-2. Agrega la integración de Supabase
-3. Ejecuta el script `scripts/01-create-tables.sql` desde v0
+## ✨ Características
 
-### 2. Variables de Entorno
+- 📱 **PWA** - Instalable en móviles y desktop
+- 🎨 **Tema Oscuro** - Diseño moderno y elegante
+- 🔐 **Autenticación** - Iniciar Sesión con email/password y OAuth
+- 📊 **Categorías** - Organiza tus productos por categorías
+- 🔍 **Búsqueda** - Encuentra productos rápidamente
+- 📈 **Estadísticas** - Ve tu progreso de compras
+- ⚡ **Tiempo Real** - Sincronización automática
+- 🛡️ **Seguro** - Row Level Security (RLS)
 
-Configura las siguientes variables en tu archivo `.env.local`:
+## 🏗️ Arquitectura
 
-\`\`\`env
-# Supabase Database URLs
-DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres"
-DIRECT_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres"
-\`\`\`
+### Frontend
+- **Next.js 15** con App Router
+- **React 19** con hooks modernos
+- **TypeScript** para type safety
+- **Tailwind CSS** para estilos
+- **Zustand** para estado global
 
-### 3. Comandos de Prisma
+### Backend (Opcional)
+- **Supabase** como backend completo
+- **PostgreSQL** como base de datos
+- **Row Level Security (RLS)** para seguridad
+- **Auth** integrado con OAuth
 
-\`\`\`bash
-# Generar cliente de Prisma
-npm run db:generate
+## 📱 Modo de Demostración
 
-# Sincronizar esquema con la base de datos
-npm run db:push
+La aplicación funciona **sin configuración** en modo de demostración:
 
-# Abrir Prisma Studio (opcional)
-npm run db:studio
-\`\`\`
+- ✅ **Interfaz completa** - Todas las funciones de UI
+- ✅ **Navegación** - Sidebar y rutas funcionando
+- ✅ **Componentes** - Formularios y modales
+- ✅ **PWA** - Instalable como app nativa
+- ❌ **Persistencia** - Los datos no se guardan
+- ❌ **Autenticación** - Iniciar Sesión simulado
 
-### 4. Estructura de Base de Datos
+## 🔧 Configuración de Supabase (Opcional)
 
-La tabla `shopping_items` incluye:
+Para habilitar la persistencia de datos y autenticación real:
 
-- `id`: Identificador único (CUID)
-- `name`: Nombre del producto
-- `category`: Categoría (supermercado, verduleria, carniceria)
-- `status`: Estado (este-mes, proximo-mes)
-- `completed`: Si está comprado o no
-- `orderIndex`: Orden para drag and drop
-- `createdAt` / `updatedAt`: Timestamps automáticos
+### 1. Configurar Variables de Entorno
+```bash
+cp env.example .env.local
+```
 
-## Arquitectura
+Edita `.env.local`:
+```env
+NEXT_PUBLIC_SUPABASE_URL=tu_url_del_proyecto
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anonima
+```
 
-### API Routes
+### 2. Configurar Supabase
+```bash
+pnpm setup-supabase
+```
 
-- `GET /api/shopping-items` - Obtener todos los productos
-- `POST /api/shopping-items` - Crear nuevo producto
-- `PATCH /api/shopping-items/[id]` - Actualizar producto
-- `DELETE /api/shopping-items/[id]` - Eliminar producto
-- `POST /api/shopping-items/reorder` - Reordenar productos
+### 3. Ejecutar Schema SQL
+1. Ve a tu dashboard de Supabase
+2. Ve a SQL Editor
+3. Ejecuta el contenido de `supabase/schema.sql`
 
-### Componentes Principales
+### 4. Configurar OAuth (Opcional)
+1. Ve a Authentication > Providers
+2. Habilita Google/Apple
+3. Configura las URLs de redirección
 
-- `ShoppingListManager` - Componente principal de gestión
-- `useShoppingItems` - Hook personalizado para manejo de estado
-- API Routes con Prisma ORM para operaciones de base de datos
+## 📁 Estructura del Proyecto
 
-## Uso
+```
+├── app/                    # Next.js App Router
+│   ├── auth/              # Páginas de autenticación
+│   ├── api/               # API routes (legacy)
+│   └── (pages)/           # Páginas principales
+├── components/            # Componentes React
+│   ├── auth/              # Componentes de autenticación
+│   ├── atoms/             # Componentes atómicos
+│   ├── molecules/         # Componentes moleculares
+│   └── organisms/         # Componentes complejos
+├── hooks/                 # Custom hooks
+├── lib/                   # Utilidades y configuración
+│   ├── supabase/          # Clientes de Supabase
+│   ├── store/             # Stores de Zustand
+│   └── types/             # Tipos TypeScript
+├── supabase/              # Configuración de Supabase
+│   └── schema.sql         # Esquema de la base de datos
+└── scripts/               # Scripts de utilidad
+```
 
-1. Agrega productos seleccionando la categoría
-2. Mueve productos entre "Este Mes" y "Próximo Mes"
-3. Marca productos como comprados
-4. Reordena con drag and drop
-5. Los cambios se persisten automáticamente en Supabase
+## 🎨 Componentes
 
-## Tecnologías
+### Atomic Design
+- **Atoms** - Botones, inputs, iconos
+- **Molecules** - Formularios, alertas
+- **Organisms** - Listas, modales, cards
+- **Templates** - Layouts de página
 
-- Next.js 15 con App Router
-- React 18 con TypeScript
-- Tailwind CSS v4
-- Supabase (PostgreSQL)
-- Prisma ORM
-- @hello-pangea/dnd para drag and drop
-- Lucide React para iconos
+### UI Library
+- **Shadcn/ui** como base
+- **Lucide React** para iconos
+- **Framer Motion** para animaciones
 
-## Desarrollo
+## 🚀 Despliegue
 
-\`\`\`bash
-# Instalar dependencias
-npm install
+### Vercel (Recomendado)
+1. Conecta tu repositorio a Vercel
+2. Configura las variables de entorno (opcional)
+3. Despliega automáticamente
 
-# Ejecutar en desarrollo
-npm run dev
+### Variables de Entorno para Producción
+```env
+NEXT_PUBLIC_SUPABASE_URL=tu_url_de_produccion
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_de_produccion
+```
 
-# Generar cliente de Prisma después de cambios en schema
-npm run db:generate
+## 🧪 Testing
+
+```bash
+# Ejecutar tests
+pnpm test
+
+# Tests en modo watch
+pnpm test:watch
+
+# Coverage
+pnpm test:coverage
+```
+
+## 📱 PWA
+
+La aplicación es una PWA completa con:
+- **Manifest** para instalación
+- **Service Worker** para offline
+- **Iconos** optimizados para todas las plataformas
+- **Meta tags** para redes sociales
+
+## 🔧 Scripts Disponibles
+
+```bash
+# Desarrollo
+pnpm dev
+
+# Build
+pnpm build
+
+# Linting
+pnpm lint
+
+# Configurar Supabase
+pnpm setup-supabase
+
+# Regenerar iconos PWA
+pnpm regenerate-icons
+```
+
+## 🆘 Solución de Problemas
+
+### Error: "Invalid API key"
+- Verifica que las variables de entorno estén correctas
+- Asegúrate de que `.env.local` esté en la raíz del proyecto
+
+### Error: "User not authenticated"
+- Verifica que el middleware esté configurado
+- Asegúrate de que las políticas RLS estén activas
+
+### Error: "Table doesn't exist"
+- Ejecuta el schema SQL en Supabase
+- Verifica que las tablas se crearon correctamente
+
+## 📚 Recursos
+
+- [Documentación de Supabase](https://supabase.com/docs)
+- [Next.js App Router](https://nextjs.org/docs/app)
+- [Zustand](https://zustand-demo.pmnd.rs/)
+- [Shadcn/ui](https://ui.shadcn.com/)
+
+## 📄 Licencia
+
+MIT License - ver [LICENSE](LICENSE) para más detalles.
+
+## 🤝 Contribuir
+
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
+
+## 📞 Soporte
+
+Si tienes problemas o preguntas:
+- Abre un issue en GitHub
+- Revisa la documentación
+- Consulta los logs de la consola

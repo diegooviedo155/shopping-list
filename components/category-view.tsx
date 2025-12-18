@@ -1,97 +1,128 @@
 "use client"
 
-import { useMemo } from "react"
-import { Loader2, ShoppingCart } from "lucide-react"
+import { useMemo, useState, useEffect } from "react"
+import { Loader2, ShoppingCart, Clock } from "lucide-react"
 import { ITEM_STATUS } from "@/lib/constants/item-status"
-import { CATEGORIES, CATEGORY_CONFIG } from "@/lib/constants/categories"
+import { getCategoryColor, getIconEmoji, categorySlugToDatabaseType } from "@/lib/constants/categories"
 import { Checkbox } from "./ui/checkbox"
 import { Badge } from "./ui/badge"
-import { PageLayout, PageHeader } from "./templates"
+import { SidebarLayout } from "./sidebar-layout"
 import { LoadingOverlay } from "./loading-states"
-import { FloatingActionButton } from "./atoms"
+import { LoadingSpinner } from "./loading-spinner"
+import { FloatingActionButton, SearchInput } from "./atoms"
 import { AddProductModal } from "./modals"
-import { useUnifiedCategoryView } from "../hooks/use-unified-shopping"
+import { useUnifiedCategoryView, useUnifiedShopping } from "../hooks/use-unified-shopping"
 import { useToast } from "../hooks/use-toast"
 import type { ShoppingItem } from "@/lib/types/database"
 
 export function CategoryView({ category, onBack }: { category: string; onBack: () => void }) {
-  const { getCategoryStats, loading, error, clearError } = useUnifiedCategoryView()
+  const { getCategoryStats, loading, error, clearError, setSearchQuery, clearSearch, searchQuery } = useUnifiedCategoryView()
+  const { updateItemCompletedStatus, addItem } = useUnifiedShopping()
   const { showSuccess, showError } = useToast()
   
-  // Obtener estadísticas de la categoría
-  const categoryStats = getCategoryStats(category as any)
+  // Estado local para actualizaciones optimistas
+  const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, boolean>>({})
+  const [pendingUpdates, setPendingUpdates] = useState<Set<string>>(new Set())
+  const [isHydrated, setIsHydrated] = useState(false)
+  
+  // Manejar hidratación
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
+  
+  // Obtener estadísticas de la categoría con búsqueda
+  const categoryStats = getCategoryStats(categorySlugToDatabaseType(category), searchQuery)
   const items = categoryStats.items
+
+
   
 
-  const toggleItemCompleted = async (itemId: string, currentStatus: boolean) => {
+  // Función para actualización optimista inmediata
+  const handleOptimisticToggle = async (itemId: string, currentStatus: boolean) => {
+    const newStatus = !currentStatus
+    
+    // Actualización optimista inmediata
+    setOptimisticUpdates(prev => ({
+      ...prev,
+      [itemId]: newStatus
+    }))
+    
+    // Agregar a pendientes
+    setPendingUpdates(prev => new Set([...prev, itemId]))
+    
     try {
-      // Importar dinámicamente para evitar problemas de hooks
-      const { useUnifiedShopping } = await import('../hooks/use-unified-shopping')
-      const { toggleItemCompleted: toggleItem } = useUnifiedShopping()
+      // Actualización inmediata al servidor
+      await updateItemCompletedStatus(itemId, newStatus)
       
-      await toggleItem(itemId)
-      showSuccess(
-        currentStatus ? 'Producto pendiente' : 'Producto completado',
-        `Producto marcado como ${currentStatus ? 'pendiente' : 'completado'}`
-      )
+      // Remover de pendientes y limpiar actualización optimista
+      setPendingUpdates(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(itemId)
+        return newSet
+      })
+      setOptimisticUpdates(prev => {
+        const newUpdates = { ...prev }
+        delete newUpdates[itemId]
+        return newUpdates
+      })
     } catch (err) {
+      // Revertir cambio optimista en caso de error
+      setOptimisticUpdates(prev => ({
+        ...prev,
+        [itemId]: currentStatus
+      }))
+      setPendingUpdates(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(itemId)
+        return newSet
+      })
       showError('Error', 'No se pudo actualizar el producto')
     }
   }
 
-  const handleAddItem = async (data: { name: string; category: string; status: string }) => {
+  const handleAddItem = async (data: { name: string; categoryId: string; status: string }) => {
     try {
-      // Importar dinámicamente para evitar problemas de hooks
-      const { useUnifiedShopping } = await import('../hooks/use-unified-shopping')
-      const { addItem } = useUnifiedShopping()
-      
-      await addItem(data.name, data.category as any, data.status as any)
+      await addItem(data.name, data.categoryId, data.status)
       showSuccess('Producto agregado', `${data.name} se agregó a la categoría`)
     } catch (err) {
       showError('Error', 'No se pudo agregar el producto')
     }
   }
 
-  const categoryItems = items.sort((a, b) => a.orderIndex - b.orderIndex)
-  const thisMonthItems = categoryItems.filter((item) => item.status.getValue() === ITEM_STATUS.THIS_MONTH)
-  const nextMonthItems = categoryItems.filter((item) => item.status.getValue() === ITEM_STATUS.NEXT_MONTH)
-
-  const categoryName = (CATEGORY_CONFIG as any)[category]?.name || category
-  const categoryColor = `var(--color-${category.toLowerCase()})`
-
-  // Progress tracking for the category - usar los datos del store
-  const progress = useMemo(() => {
-    return {
-      current: categoryStats.completedCount,
-      total: categoryStats.totalCount
+  // Función para obtener el estado combinado (real + optimista)
+  const getItemStatus = (item: any) => {
+    if (optimisticUpdates.hasOwnProperty(item.id)) {
+      return optimisticUpdates[item.id]
     }
-  }, [categoryStats.completedCount, categoryStats.totalCount])
+    return item.completed
+  }
 
-  const header = (
-    <PageHeader
-      title={categoryName}
-      showBackButton
-      onBack={onBack}
-      progress={progress.total > 0 ? progress : undefined}
-    />
-  )
+  // Los items ya vienen ordenados desde el hook (completados al final)
+  const categoryItems = items
+
+  const categoryName = category.charAt(0).toUpperCase() + category.slice(1)
+  const categoryColor = getCategoryColor(category)
+
+  // Progress tracking for the category
+  const progress = useMemo(() => {
+    const completed = items.filter(item => getItemStatus(item)).length
+    return {
+      current: completed,
+      total: items.length
+    }
+  }, [items, optimisticUpdates])
 
   if (categoryStats.isLoading) {
-    return (
-      <PageLayout header={header}>
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-muted-foreground">Cargando productos...</p>
-          </div>
-        </div>
-      </PageLayout>
-    )
+    return <LoadingSpinner title="Cargando productos..." />
   }
 
   if (error) {
     return (
-      <PageLayout header={header}>
+      <SidebarLayout 
+        title={categoryName}
+        showBackButton
+        onBack={onBack}
+      >
         <div className="text-center py-12">
           <p className="text-destructive mb-4">Error: {error}</p>
           <button 
@@ -101,61 +132,112 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
             Reintentar
           </button>
         </div>
-      </PageLayout>
+      </SidebarLayout>
     )
   }
 
-  const renderItemsList = (items: typeof categoryItems, title: string) => (
-    <>
-      {items.length > 0 && (
+  const renderItemsList = (items: any[], title: string) => {
+    if (!isHydrated) {
+      return (
         <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-3 flex items-center">
-            <span className="w-2 h-5 rounded-full mr-2" style={{ backgroundColor: categoryColor }} />
-            {title}
-            <Badge variant="outline" className="ml-2">
-              {items.length}
-            </Badge>
-          </h3>
           <div className="space-y-2">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center gap-3 p-3 bg-card rounded-lg border border-border"
-              >
-                <Checkbox
-                  checked={item.completed}
-                  onCheckedChange={() => toggleItemCompleted(item.id, item.completed)}
-                  aria-label={item.completed ? 'Marcar como pendiente' : 'Marcar como completado'}
-                  className="h-5 w-5"
-                />
-                <label
-                  htmlFor={`item-${item.id}`}
-                  className={`flex-1 text-sm capitalize ${
-                    item.completed ? 'line-through text-muted-foreground' : 'text-foreground'
+            <div className="animate-pulse">
+              <div className="h-12 bg-muted rounded-lg"></div>
+              <div className="h-12 bg-muted rounded-lg"></div>
+              <div className="h-12 bg-muted rounded-lg"></div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <>
+        {items.length > 0 && (
+          <div className="mb-6">
+            <div className="space-y-2">
+              {items.map((item) => {
+                const isCompleted = getItemStatus(item)
+                const isPending = pendingUpdates.has(item.id)
+              
+              return (
+                <div
+                  key={item.id}
+                  className={`flex items-center gap-3 p-3 bg-card rounded-lg border border-border transition-all duration-200 ${
+                    isPending ? 'opacity-80 bg-muted/30' : 'hover:bg-muted/20'
                   }`}
                 >
-                  {item.name.getValue()}
-                </label>
-              </div>
-            ))}
+                  <Checkbox
+                    id={`item-${item.id}`}
+                    checked={isCompleted}
+                    onCheckedChange={() => handleOptimisticToggle(item.id, item.completed)}
+                    aria-label={isCompleted ? 'Marcar como pendiente' : 'Marcar como completado'}
+                    className="h-6 w-6 cursor-pointer"
+                  />
+                  <label
+                    htmlFor={`item-${item.id}`}
+                    className={`flex-1 text-sm capitalize cursor-pointer ${
+                      isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'
+                    }`}
+                  >
+                    {item.name}
+                  </label>
+                  
+                  {isPending && (
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/50 rounded-full text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
     </>
-  )
+    )
+  }
 
   return (
-    <PageLayout header={header}>
+    <SidebarLayout 
+      breadcrumbs={[
+        { label: "Inicio", href: "/" },
+        { label: "Categoría" }
+      ]}
+      title={categoryName}
+      showBackButton
+      onBack={onBack}
+    >
       <LoadingOverlay isLoading={categoryStats.isLoading}>
-        {categoryItems.length === 0 ? (
+        {/* Buscador */}
+        <div className="mb-6">
+          <SearchInput
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onClear={clearSearch}
+            placeholder={`Buscar en ${categoryName}...`}
+            className="w-full"
+          />
+        </div>
+
+        {items.length === 0 ? (
           <div className="text-center py-12">
             <ShoppingCart className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No hay productos en esta categoría</p>
+            <p className="text-muted-foreground">
+              {searchQuery ? `No se encontraron productos que coincidan con "${searchQuery}"` : 'No hay productos en esta categoría'}
+            </p>
+            {searchQuery && (
+              <button
+                onClick={clearSearch}
+                className="mt-2 text-sm text-primary hover:underline"
+              >
+                Limpiar búsqueda
+              </button>
+            )}
           </div>
         ) : (
           <>
-            {renderItemsList(thisMonthItems, 'Este mes')}
-            {renderItemsList(nextMonthItems, 'Próximo mes')}
+            {renderItemsList(items, 'Este mes')}
           </>
         )}
       </LoadingOverlay>
@@ -171,6 +253,6 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
           />
         }
       />
-    </PageLayout>
+    </SidebarLayout>
   )
 }

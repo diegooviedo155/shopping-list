@@ -1,143 +1,70 @@
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
-import { UpdateCategoryData } from '@/lib/types/category'
+import { createClient } from '@supabase/supabase-js'
 
-interface Context {
-  params: Promise<{ id: string }>
-}
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-export async function GET(request: NextRequest, { params }: Context) {
+// Use anon key with service role permissions
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const { id } = await params
-    
-    const category = await prisma.category.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: { items: true }
-        }
-      }
-    })
+    const body = await request.json()
 
-    if (!category) {
+    const { data: category, error } = await supabase
+      .from('categories')
+      .update(body)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating category:', error)
       return NextResponse.json(
-        { error: 'Category not found' },
-        { status: 404 }
+        { error: 'Failed to update category' },
+        { status: 500 }
       )
     }
 
     return NextResponse.json(category)
   } catch (error) {
-    console.error('Error fetching category:', error)
+    console.error('Error in categories PATCH API:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch category' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: Context) {
-  try {
-    const { id } = await params
-    const body: UpdateCategoryData = await request.json()
-
-    console.log('PATCH request received:', { id, body })
-
-    // Test database connection first
-    await prisma.$connect()
-    console.log('Database connected successfully')
-
-    // Verificar si la categoría existe
-    const existingCategory = await prisma.category.findUnique({
-      where: { id }
-    })
-
-    console.log('Existing category:', existingCategory)
-
-    if (!existingCategory) {
-      return NextResponse.json(
-        { error: 'Category not found' },
-        { status: 404 }
-      )
-    }
-
-    // Si se está actualizando el slug, verificar que no exista otro con el mismo slug
-    if (body.slug && body.slug !== existingCategory.slug) {
-      const slugExists = await prisma.category.findUnique({
-        where: { slug: body.slug }
-      })
-
-      if (slugExists) {
-        return NextResponse.json(
-          { error: 'Category with this slug already exists' },
-          { status: 409 }
-        )
-      }
-    }
-
-    // Actualizar la categoría
-    const updatedCategory = await prisma.category.update({
-      where: { id },
-      data: body
-    })
-
-    console.log('Category updated successfully:', updatedCategory)
-    return NextResponse.json(updatedCategory)
-  } catch (error) {
-    console.error('Error updating category:', error)
-    console.error('Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    })
-    return NextResponse.json(
-      { 
-        error: 'Failed to update category',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    )
-  }
-}
-
-export async function DELETE(request: NextRequest, { params }: Context) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const { id } = await params
 
-    // Verificar si la categoría existe
-    const existingCategory = await prisma.category.findUnique({
-      where: { id },
-      include: {
-        _count: {
-          select: { items: true }
-        }
-      }
-    })
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', id)
 
-    if (!existingCategory) {
+    if (error) {
+      console.error('Error deleting category:', error)
       return NextResponse.json(
-        { error: 'Category not found' },
-        { status: 404 }
+        { error: 'Failed to delete category' },
+        { status: 500 }
       )
     }
 
-    // Si la categoría tiene items, no permitir eliminación
-    if (existingCategory._count.items > 0) {
-      return NextResponse.json(
-        { error: 'Cannot delete category with items. Please move or delete items first.' },
-        { status: 400 }
-      )
-    }
-
-    // Eliminar la categoría
-    await prisma.category.delete({
-      where: { id }
-    })
-
-    return NextResponse.json({ message: 'Category deleted successfully' })
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting category:', error)
+    console.error('Error in categories DELETE API:', error)
     return NextResponse.json(
-      { error: 'Failed to delete category' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

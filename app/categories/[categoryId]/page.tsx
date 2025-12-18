@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation"
 import { CategoryView } from "@/components/category-view"
+import { SidebarLayout } from "@/components/sidebar-layout"
 
 export default function CategoryPage() {
   const params = useParams()

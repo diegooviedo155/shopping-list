@@ -4,6 +4,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Category, ItemStatus } from '@/lib/types/database'
 import { ITEM_STATUS } from '@/lib/constants/item-status'
+import { supabase } from '@/lib/supabase/client'
 
 // Tipos simplificados para evitar problemas con domain entities
 interface SimpleShoppingItem {
@@ -20,6 +21,7 @@ interface SimpleShoppingItem {
 interface UnifiedShoppingState {
   // Estado principal
   items: SimpleShoppingItem[]
+  categories: any[] // Categorías de la base de datos
   loading: boolean
   error: string | null
   isRefreshing: boolean
@@ -27,6 +29,7 @@ interface UnifiedShoppingState {
   // Estado de UI
   activeTab: ItemStatus
   selectedCategory: Category
+  searchQuery: string
   
   // Estado de inicialización
   hasInitialized: boolean
@@ -37,23 +40,31 @@ interface UnifiedShoppingState {
   
   // Acciones
   initialize: () => Promise<void>
+  forceInitialize: () => Promise<void>
   fetchItems: (force?: boolean) => Promise<void>
+  fetchCategories: () => Promise<void>
   addItem: (name: string, category: string, status: string) => Promise<void>
   updateItem: (id: string, updates: Partial<SimpleShoppingItem>) => Promise<void>
+  updateItemName: (id: string, name: string) => Promise<void>
   deleteItem: (id: string) => Promise<void>
   toggleItemCompleted: (id: string) => Promise<void>
+  updateItemCompletedStatus: (id: string, completed: boolean) => Promise<void>
   moveItemToStatus: (id: string, newStatus: ItemStatus) => Promise<void>
   reorderItems: (status: ItemStatus, sourceIndex: number, destIndex: number) => Promise<void>
   
   // Acciones de UI
   setActiveTab: (tab: ItemStatus) => void
   setSelectedCategory: (category: Category) => void
+  setSearchQuery: (query: string) => void
+  clearSearch: () => void
   clearError: () => void
   
   // Utilidades
   shouldFetch: () => boolean
   getItemsByStatus: (status: ItemStatus) => SimpleShoppingItem[]
-  getItemsByCategory: (category: Category) => SimpleShoppingItem[]
+  getItemsByCategory: (categorySlug: string) => SimpleShoppingItem[]
+  getItemsByStatusAndSearch: (status: ItemStatus, searchQuery?: string) => SimpleShoppingItem[]
+  getItemsByCategoryAndSearch: (category: Category, searchQuery?: string) => SimpleShoppingItem[]
   getCompletedCount: (status: ItemStatus) => number
   getTotalCount: (status: ItemStatus) => number
   isMovingItem: (id: string) => boolean
@@ -62,16 +73,40 @@ interface UnifiedShoppingState {
 const API_BASE = '/api/shopping-items'
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
 
+// Helper function to get authorization headers
+const getAuthHeaders = async (): Promise<Record<string, string>> => {
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    
+    if (sessionError) {
+      throw new Error('No se pudo obtener la sesión de autenticación')
+    }
+    
+    if (session?.access_token) {
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      }
+    } else {
+      throw new Error('Usuario no autenticado')
+    }
+  } catch (error) {
+    throw error
+  }
+}
+
 export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
   persist(
     (set, get) => ({
       // Estado inicial
       items: [],
+      categories: [],
       loading: false,
       error: null,
       isRefreshing: false,
       activeTab: ITEM_STATUS.THIS_MONTH as ItemStatus,
       selectedCategory: 'supermercado' as Category,
+      searchQuery: '',
       hasInitialized: false,
       lastFetch: null,
       movingItems: new Set<string>(),
@@ -88,51 +123,117 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
         );
       },
 
-      // Inicialización
-      initialize: async () => {
-        const state = get();
-        
-        if (state.hasInitialized && !state.shouldFetch()) {
-          return;
-        }
-        
-        try {
-          await state.fetchItems(false);
-        } catch (error) {
-          // Error handling
-        }
-        set({ hasInitialized: true });
+          // Inicialización
+          initialize: async () => {
+            const state = get();
+            
+            
+            // Verificar si hay sesión de Supabase antes de inicializar
+            try {
+              const { data: { session }, error } = await supabase.auth.getSession()
+              
+              if (!session || !session.user) {
+                set({ 
+                  items: [],
+                  categories: [],
+                  hasInitialized: false,
+                  lastFetch: null,
+                  error: null,
+                  loading: false
+                })
+                return
+              }
+            } catch (error) {
+              console.error('Store - Error checking session:', error)
+              set({ 
+                items: [],
+                categories: [],
+                hasInitialized: false,
+                lastFetch: null,
+                error: null,
+                loading: false
+              })
+              return
+            }
+            
+            if (state.hasInitialized && !state.shouldFetch()) {
+              return;
+            }
+            
+            try {
+              await Promise.all([
+                state.fetchItems(false),
+                state.fetchCategories()
+              ]);
+            } catch (error) {
+              console.error('Store - Initialization error:', error);
+            }
+            set({ hasInitialized: true });
+          },
+
+      // Forzar inicialización (para hidratación)
+      forceInitialize: async () => {
+        set({ hasInitialized: false });
+        await get().initialize();
       },
 
-      // Fetch de items
-      fetchItems: async (force = false) => {
-        const state = get();
-        
-        if (state.loading && !force) {
-          return;
-        }
-        if (!force && !state.shouldFetch()) {
-          return;
-        }
-
-        set({ 
-          loading: true, 
+      // Limpiar store (para logout)
+      clearStore: () => {
+        set({
+          items: [],
+          categories: [],
+          hasInitialized: false,
+          lastFetch: null,
           error: null,
-          isRefreshing: state.items.length > 0 
+          loading: false,
+          isRefreshing: false,
+          searchQuery: '',
+          selectedCategory: 'supermercado' as Category,
+          movingItems: new Set()
         });
+      },
 
-        try {
-          const response = await fetch(API_BASE, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            ...(force ? { cache: 'no-store' } : {})
-          });
+          // Fetch de items
+          fetchItems: async (force = false) => {
+            const state = get();
+            
+            if (state.loading && !force) {
+              return;
+            }
+            if (!force && !state.shouldFetch()) {
+              return;
+            }
 
-          if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-          }
+            set({ 
+              loading: true, 
+              error: null,
+              isRefreshing: state.items.length > 0 
+            });
+
+            try {
+              const headers = await getAuthHeaders()
+              
+              const response = await fetch(API_BASE, {
+                method: 'GET',
+                headers,
+                ...(force ? { cache: 'no-store' } : {})
+              });
+
+              if (!response.ok) {
+                const errorText = await response.text()
+                console.error('fetchItems: Error response:', errorText)
+                
+                // Manejar errores específicos
+                if (response.status === 401) {
+                  throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.')
+                } else if (response.status === 403) {
+                  throw new Error('No tienes permisos para acceder a estos datos.')
+                } else if (response.status >= 500) {
+                  throw new Error('Error del servidor. Intenta nuevamente en unos minutos.')
+                } else {
+                  throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+              }
 
           const data = await response.json();
           
@@ -140,16 +241,26 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
             throw new Error('Invalid response format');
           }
 
-          const formattedItems: SimpleShoppingItem[] = data.map((item: any) => ({
-            id: String(item.id || ''),
-            name: String(item.name || 'Sin nombre'),
-            category: String(item.category?.slug || item.categoryId || 'supermercado'),
-            status: String(item.status || ITEM_STATUS.NEXT_MONTH),
-            completed: Boolean(item.completed),
-            orderIndex: Number(item.orderIndex || item.order_index || 0),
-            createdAt: new Date(item.createdAt || item.created_at || new Date()),
-            updatedAt: new Date(item.updatedAt || item.updated_at || new Date())
-          }));
+          const formattedItems: SimpleShoppingItem[] = data.map((item: any) => {
+          // Status is already in correct format (este_mes)
+          const normalizedStatus = String(item.status || ITEM_STATUS.NEXT_MONTH);
+          
+          // Usar la información de la categoría si está disponible
+          const categorySlug = item.categories?.slug || item.category?.slug || 'supermercado';
+            
+            return {
+              id: String(item.id || ''),
+              name: String(item.name || 'Sin nombre'),
+              category: String(categorySlug),
+              status: normalizedStatus,
+              completed: Boolean(item.completed),
+              orderIndex: Number(item.orderIndex || item.order_index || 0),
+              createdAt: new Date(item.createdAt || item.created_at || new Date()),
+              updatedAt: new Date(item.updatedAt || item.updated_at || new Date())
+            };
+          });
+
+
 
           set({ 
             items: formattedItems, 
@@ -159,31 +270,95 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
           });
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-          set({ 
-            error: errorMessage, 
-            loading: false,
-            isRefreshing: false
-          });
+          console.error('fetchItems: Error:', errorMessage);
+          
+          // Si es un error de autenticación, limpiar datos y redirigir
+          if (errorMessage.includes('Sesión expirada') || errorMessage.includes('Usuario no autenticado')) {
+            set({ 
+              items: [],
+              categories: [],
+              error: errorMessage,
+              loading: false,
+              isRefreshing: false,
+              hasInitialized: false
+            });
+            
+            // Redirigir al login después de un breve delay
+            setTimeout(() => {
+              if (typeof window !== 'undefined') {
+                window.location.href = '/login'
+              }
+            }, 2000);
+          } else {
+            set({ 
+              error: errorMessage,
+              loading: false,
+              isRefreshing: false
+            });
+          }
         }
       },
 
-      // Agregar item
-      addItem: async (name: string, category: string, status: string) => {
-        try {
-          const response = await fetch(API_BASE, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              name: name.trim(),
-              categoryId: category,
-              status: status
-            })
-          });
+          // Fetch de categorías
+          fetchCategories: async () => {
+            try {
+              const headers = await getAuthHeaders()
+              const response = await fetch('/api/categories', {
+                method: 'GET',
+                headers,
+              });
 
           if (!response.ok) {
             throw new Error(`Error ${response.status}: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+          
+          if (!Array.isArray(data)) {
+            throw new Error('Invalid categories response format');
+          }
+
+          set({ categories: data });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Error al cargar categorías';
+          console.error('Store - fetchCategories error:', errorMessage);
+          set({ error: errorMessage });
+        }
+      },
+
+          // Agregar item
+          addItem: async (name: string, category: string, status: string) => {
+            try {
+              // Buscar el ID de la categoría por su slug
+              const state = get();
+              const categoryObj = state.categories.find(cat => cat.slug === category);
+              const categoryId = categoryObj?.id || category; // Fallback al slug si no se encuentra
+              
+              const headers = await getAuthHeaders()
+              const response = await fetch(API_BASE, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                  name: name.trim(),
+                  category_id: categoryId,
+                  status: status
+                })
+              });
+
+          if (!response.ok) {
+            const errorText = await response.text()
+            console.error('addItem: Error response:', errorText)
+            
+            // Manejar errores específicos
+            if (response.status === 401) {
+              throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.')
+            } else if (response.status === 403) {
+              throw new Error('No tienes permisos para agregar items.')
+            } else if (response.status >= 500) {
+              throw new Error('Error del servidor. Intenta nuevamente en unos minutos.')
+            } else {
+              throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
           }
 
           const newItem = await response.json();
@@ -191,7 +366,7 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
           const formattedItem: SimpleShoppingItem = {
             id: String(newItem.id),
             name: String(newItem.name),
-            category: String(newItem.category?.slug || newItem.categoryId || category),
+            category: String(newItem.categories?.slug || newItem.category?.slug || category),
             status: String(newItem.status),
             completed: Boolean(newItem.completed),
             orderIndex: Number(newItem.orderIndex || 0),
@@ -204,18 +379,36 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
           }));
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-          set({ error: errorMessage });
+          console.error('addItem: Error:', errorMessage);
+          
+          // Si es un error de autenticación, limpiar datos y redirigir
+          if (errorMessage.includes('Sesión expirada') || errorMessage.includes('Usuario no autenticado')) {
+            set({ 
+              items: [],
+              categories: [],
+              error: errorMessage,
+              hasInitialized: false
+            });
+            
+            // Redirigir al login después de un breve delay
+            setTimeout(() => {
+              if (typeof window !== 'undefined') {
+                window.location.href = '/login'
+              }
+            }, 2000);
+          } else {
+            set({ error: errorMessage });
+          }
         }
       },
 
       // Actualizar item
       updateItem: async (id: string, updates: Partial<SimpleShoppingItem>) => {
         try {
+          const headers = await getAuthHeaders()
           const response = await fetch(`${API_BASE}/${id}`, {
             method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify(updates)
           });
 
@@ -225,24 +418,93 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
 
           const updatedItem = await response.json();
           
-          set(state => ({
-            items: state.items.map(item => 
+          set(state => {
+            const updatedItems = state.items.map(item => 
               item.id === id 
-                ? { ...item, ...updates, updatedAt: new Date() }
+                ? { 
+                    ...item, 
+                    ...updates, 
+                    category: String(updatedItem.category?.slug || updatedItem.categoryId || item.category),
+                    updatedAt: new Date() 
+                  }
                 : item
-            )
-          }));
+            );
+            
+            
+            return { items: updatedItems };
+          });
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
           set({ error: errorMessage });
         }
       },
 
+      // Actualizar solo el nombre del item
+      updateItemName: async (id: string, name: string) => {
+        // Obtener el estado actual del item
+        const currentItem = get().items.find(item => item.id === id);
+        if (!currentItem) return;
+        
+        const oldName = currentItem.name;
+        
+        // Actualización optimista - cambiar inmediatamente en el UI
+        set(state => ({
+          items: state.items.map(item => 
+            item.id === id 
+              ? { ...item, name: name.trim(), updatedAt: new Date() }
+              : item
+          )
+        }));
+
+        try {
+          const response = await fetch(`${API_BASE}/${id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name: name.trim() })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+          }
+
+          const updatedItem = await response.json();
+          
+          // Actualizar con los datos del servidor
+          set(state => ({
+            items: state.items.map(item => 
+              item.id === id 
+                ? { 
+                    ...item, 
+                    name: String(updatedItem.name),
+                    updatedAt: new Date() 
+                  }
+                : item
+            )
+          }));
+        } catch (error) {
+          // Si falla, revertir el cambio
+          set(state => ({
+            items: state.items.map(item => 
+              item.id === id 
+                ? { ...item, name: oldName, updatedAt: new Date() }
+                : item
+            )
+          }));
+          const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+          set({ error: errorMessage });
+          throw error;
+        }
+      },
+
       // Eliminar item
       deleteItem: async (id: string) => {
         try {
+          const headers = await getAuthHeaders()
           const response = await fetch(`${API_BASE}/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers
           });
 
           if (!response.ok) {
@@ -268,31 +530,67 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
         await state.updateItem(id, { completed: newCompleted });
       },
 
+      // Actualizar estado completado directamente (para debounce)
+      updateItemCompletedStatus: async (id: string, completed: boolean) => {
+        await get().updateItem(id, { completed });
+      },
+
       // Mover item a otro status con actualización optimista
       moveItemToStatus: async (id: string, newStatus: ItemStatus) => {
+        // Obtener el estado actual del item
+        const currentItem = get().items.find(item => item.id === id);
+        if (!currentItem) return;
+        
+        const oldStatus = currentItem.status;
+        
         // Marcar como moviendo
         set(state => ({
           movingItems: new Set([...state.movingItems, id])
         }));
         
         // Actualización optimista - cambiar inmediatamente en el UI
-        set(state => ({
-          items: state.items.map(item => 
+        set(state => {
+          const updatedItems = state.items.map(item => 
             item.id === id 
               ? { ...item, status: newStatus, updatedAt: new Date() }
               : item
-          )
-        }));
+          );
+          return { items: updatedItems };
+        });
         
         // Luego hacer la petición a la API
         try {
-          await get().updateItem(id, { status: newStatus });
+          const headers = await getAuthHeaders()
+          const response = await fetch(`${API_BASE}/${id}`, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify({ status: newStatus })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+          }
+
+          const updatedItem = await response.json();
+          
+          // Actualizar con los datos del servidor
+          set(state => ({
+            items: state.items.map(item => 
+              item.id === id 
+                ? { 
+                    ...item, 
+                    status: String(updatedItem.status),
+                    updatedAt: new Date() 
+                  }
+                : item
+            )
+          }));
         } catch (error) {
           // Si falla, revertir el cambio
           set(state => ({
             items: state.items.map(item => 
               item.id === id 
-                ? { ...item, status: item.status === 'este-mes' ? 'proximo-mes' : 'este-mes', updatedAt: new Date() }
+                ? { ...item, status: oldStatus, updatedAt: new Date() }
                 : item
             )
           }));
@@ -336,21 +634,37 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
         set({ selectedCategory: category });
       },
 
+      setSearchQuery: (query: string) => {
+        set({ searchQuery: query });
+      },
+
+      clearSearch: () => {
+        set({ searchQuery: '' });
+      },
+
       clearError: () => {
         set({ error: null });
       },
 
       // Utilidades
       getItemsByStatus: (status: ItemStatus) => {
-        return get().items
+        const items = get().items
+        const filteredItems = items
           .filter(item => item.status === status)
           .sort((a, b) => a.orderIndex - b.orderIndex);
+        
+        
+        return filteredItems;
       },
 
-      getItemsByCategory: (category: Category) => {
-        return get().items
-          .filter(item => item.category === category)
+      getItemsByCategory: (categorySlug: string) => {
+        const items = get().items
+        const filteredItems = items
+          .filter(item => item.category === categorySlug)
           .sort((a, b) => a.orderIndex - b.orderIndex);
+        
+        
+        return filteredItems;
       },
 
       getCompletedCount: (status: ItemStatus) => {
@@ -368,16 +682,46 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
       // Verificar si un item está siendo movido
       isMovingItem: (id: string) => {
         return get().movingItems.has(id);
+      },
+
+      // Funciones de búsqueda
+      getItemsByStatusAndSearch: (status: ItemStatus, searchQuery?: string) => {
+        const items = get().items
+        let filteredItems = items.filter(item => item.status === status)
+        
+        if (searchQuery && searchQuery.trim()) {
+          const query = searchQuery.toLowerCase().trim()
+          filteredItems = filteredItems.filter(item => 
+            item.name.toLowerCase().includes(query)
+          )
+        }
+        
+        return filteredItems.sort((a, b) => a.orderIndex - b.orderIndex)
+      },
+
+      getItemsByCategoryAndSearch: (category: Category, searchQuery?: string) => {
+        const items = get().items
+        let filteredItems = items.filter(item => item.category === category)
+        
+        if (searchQuery && searchQuery.trim()) {
+          const query = searchQuery.toLowerCase().trim()
+          filteredItems = filteredItems.filter(item => 
+            item.name.toLowerCase().includes(query)
+          )
+        }
+        
+        return filteredItems.sort((a, b) => a.orderIndex - b.orderIndex)
       }
     }),
     {
       name: 'unified-shopping-store',
       partialize: (state) => ({
         items: state.items,
+        categories: state.categories,
         activeTab: state.activeTab,
         selectedCategory: state.selectedCategory,
-        lastFetch: state.lastFetch,
-        hasInitialized: state.hasInitialized
+        lastFetch: state.lastFetch
+        // No persistir hasInitialized para evitar problemas de hidratación
       })
     }
   )

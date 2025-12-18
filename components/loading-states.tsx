@@ -2,6 +2,7 @@
 
 import { Loader2, ShoppingCart, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { LoadingSpinner as LoadingSpinnerNew } from './loading-spinner'
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg'
@@ -79,10 +80,7 @@ export function LoadingOverlay({ isLoading, children, message = 'Cargando...' }:
       {children}
       {isLoading && (
         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="text-center">
-            <LoadingSpinner size="lg" className="mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">{message}</p>
-          </div>
+          <LoadingSpinnerNew title={message} />
         </div>
       )}
     </div>

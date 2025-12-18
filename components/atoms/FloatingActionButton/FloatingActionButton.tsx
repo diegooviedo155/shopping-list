@@ -11,6 +11,7 @@ export interface FloatingActionButtonProps {
   className?: string
   size?: 'sm' | 'md' | 'lg'
   position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+  variant?: 'default' | 'destructive'
   disabled?: boolean
 }
 
@@ -33,6 +34,11 @@ const iconSizes = {
   lg: 'w-7 h-7',
 }
 
+const variantClasses = {
+  default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+  destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+}
+
 export const FloatingActionButton = React.forwardRef<
   HTMLButtonElement,
   FloatingActionButtonProps
@@ -42,6 +48,7 @@ export const FloatingActionButton = React.forwardRef<
   className,
   size = 'md',
   position = 'bottom-right',
+  variant = 'default',
   disabled = false,
   ...props
 }, ref) => {
@@ -51,9 +58,10 @@ export const FloatingActionButton = React.forwardRef<
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'fixed z-50 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-shadow duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center',
+        'fixed z-50 rounded-full shadow-lg hover:shadow-xl transition-shadow duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center',
         sizeClasses[size],
         positionClasses[position],
+        variantClasses[variant],
         className
       )}
       whileHover={{ scale: 1.05 }}

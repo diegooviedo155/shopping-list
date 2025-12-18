@@ -1,36 +1,93 @@
-import { type NextRequest, NextResponse } from "next/server"
-import prisma from "@/lib/prisma"
-import { validateCreateItem } from "@/lib/validations/shopping"
-import { toDatabaseStatus, toFrontendStatus } from "@/lib/utils/status-conversion"
+import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
+import { getAuthenticatedUserId, getUserIdFromRequest } from '@/lib/auth/server-auth'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Verificar la conexión a la base de datos
-    await prisma.$connect()
+    const { searchParams } = new URL(request.url)
+    const status = searchParams.get('status')
+    const categoryId = searchParams.get('category_id')
+
+    // Intentar obtener el usuario del token JWT primero
+    let user_id = getUserIdFromRequest(request)
     
-    // Obtener todos los items
-    const items = await prisma.shoppingItem.findMany({
-      include: {
-        category: true
-      },
-      orderBy: {
-        orderIndex: "asc",
-      },
-    })
-    
-    // Convert database status format (este_mes) to frontend format (este-mes)
-    const result = items.map(item => ({
-      ...item,
-      status: toFrontendStatus(item.status)
-    }))
-    
-    return NextResponse.json(result)
+    if (!user_id) {
+      // Si no se puede obtener del token, intentar con cookies
+      const cookieStore = await cookies()
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            getAll() {
+              return cookieStore.getAll()
+            },
+            setAll(cookiesToSet) {
+              // No-op for server-side
+            },
+          },
+        }
+      )
+
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      
+      if (authError || !user) {
+        console.error('Error getting authenticated user:', authError)
+        return NextResponse.json(
+          { error: 'Unauthorized - User not authenticated' },
+          { status: 401 }
+        )
+      }
+      
+      user_id = user.id
+    }
+
+    // Usar el cliente de Supabase básico para la consulta
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    let query = supabase
+      .from('shopping_items')
+      .select(`
+        *,
+        categories (
+          id,
+          name,
+          slug,
+          icon,
+          color
+        )
+      `)
+      .eq('user_id', user_id)
+      .order('order_index', { ascending: true })
+
+    if (status) {
+      query = query.eq('status', status)
+    }
+
+    if (categoryId) {
+      query = query.eq('category_id', categoryId)
+    }
+
+    const { data: items, error } = await query
+
+    if (error) {
+      console.error('Error fetching shopping items:', error)
+      return NextResponse.json(
+        { error: 'Failed to fetch shopping items' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json(items)
   } catch (error) {
+    console.error('Error in shopping items API:', error)
     return NextResponse.json(
-      { 
-        error: "Failed to fetch shopping items",
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }, 
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
@@ -39,53 +96,89 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    const { name, category_id, status, completed = false } = body
+
+    // Intentar obtener el usuario del token JWT primero
+    let user_id = getUserIdFromRequest(request)
     
-    // Validar los datos de entrada
-    const validation = validateCreateItem(body)
-    if (!validation.success) {
+    if (!user_id) {
+      // Si no se puede obtener del token, intentar con cookies
+      const cookieStore = await cookies()
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            getAll() {
+              return cookieStore.getAll()
+            },
+            setAll(cookiesToSet) {
+              // No-op for server-side
+            },
+          },
+        }
+      )
+
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      
+      if (authError || !user) {
+        console.error('Error getting authenticated user:', authError)
+        return NextResponse.json(
+          { error: 'Unauthorized - User not authenticated' },
+          { status: 401 }
+        )
+      }
+      
+      user_id = user.id
+    }
+
+    // Usar el cliente de Supabase básico para la consulta
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    const now = new Date().toISOString()
+    
+    const { data: item, error } = await supabase
+      .from('shopping_items')
+      .insert({
+        id: crypto.randomUUID(),
+        name,
+        category_id,
+        status,
+        completed,
+        order_index: 0,
+        user_id,
+        created_at: now,
+        updated_at: now
+      })
+      .select(`
+        *,
+        categories (
+          id,
+          name,
+          slug,
+          icon,
+          color
+        )
+      `)
+      .single()
+
+    if (error) {
+      console.error('Error creating shopping item:', error)
       return NextResponse.json(
-        { 
-          error: "Datos inválidos",
-          details: validation.error.errors.map(e => e.message).join(', ')
-        }, 
-        { status: 400 }
+        { error: 'Failed to create shopping item', details: error.message },
+        { status: 500 }
       )
     }
 
-    const { name, categoryId, status } = validation.data
-
-    // Convert frontend status format (este-mes) to database format (este_mes)
-    const dbStatus = toDatabaseStatus(status)
-
-    // Get the highest order index for the status
-    const maxOrderItem = await prisma.shoppingItem.findFirst({
-      where: { status: dbStatus },
-      orderBy: { orderIndex: "desc" },
-    })
-
-    const orderIndex = (maxOrderItem?.orderIndex ?? -1) + 1
-
-    const item = await prisma.shoppingItem.create({
-      data: {
-        name: name.trim(),
-        categoryId: categoryId,
-        status: dbStatus,
-        completed: false,
-        orderIndex,
-      },
-    })
-
-    // Convert database status format (este_mes) to frontend format (este-mes)
-    const result = {
-      ...item,
-      status: toFrontendStatus(item.status)
-    }
-
-    return NextResponse.json(result)
+    return NextResponse.json(item, { status: 201 })
   } catch (error) {
-    return NextResponse.json({ 
-      error: "Failed to create shopping item",
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    console.error('Error in shopping items POST API:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }

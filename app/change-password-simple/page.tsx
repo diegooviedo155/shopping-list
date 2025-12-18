@@ -1,0 +1,243 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Eye, EyeOff, CheckCircle, XCircle, ArrowLeft } from 'lucide-react'
+import { supabase } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+import { useToast } from '@/hooks/use-toast'
+import { SidebarLayout } from '@/components/sidebar-layout'
+import { useAuth } from '@/components/auth/auth-provider'
+import { goBack } from '@/lib/utils'
+import { LoadingSpinner } from '@/components/loading-spinner'
+
+export default function ChangePasswordSimplePage() {
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const router = useRouter()
+  const { showError, showSuccess } = useToast()
+  const { user, isLoading: authLoading } = useAuth()
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login')
+    }
+  }, [user, authLoading, router])
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setSuccess(null)
+    setIsLoading(true)
+
+    // Validaciones básicas
+    if (newPassword !== confirmPassword) {
+      setError('Las contraseñas nuevas no coinciden.')
+      showError('Error', 'Las contraseñas nuevas no coinciden.')
+      setIsLoading(false)
+      return
+    }
+
+    if (newPassword.length < 6) {
+      setError('La nueva contraseña debe tener al menos 6 caracteres.')
+      showError('Error', 'La nueva contraseña debe tener al menos 6 caracteres.')
+      setIsLoading(false)
+      return
+    }
+
+    // Validación adicional: verificar que no sea una contraseña común
+    const commonPasswords = ['demo123', 'password', '123456', 'admin', 'test', 'user']
+    if (commonPasswords.includes(newPassword.toLowerCase())) {
+      setError('Por seguridad, no uses contraseñas comunes. Elige una contraseña más segura.')
+      showError('Contraseña insegura', 'Por seguridad, no uses contraseñas comunes. Elige una contraseña más segura.')
+      setIsLoading(false)
+      return
+    }
+
+    // Timeout de 8 segundos
+    const timeoutId = setTimeout(() => {
+      setError('La operación está tardando demasiado. Por favor, verifica tu conexión e intenta nuevamente.')
+      showError('Timeout', 'La operación está tardando demasiado. Por favor, verifica tu conexión e intenta nuevamente.')
+      setIsLoading(false)
+    }, 8000)
+
+    try {
+      // Verificar que el usuario esté autenticado
+      if (!user) {
+        setError('No estás autenticado. Por favor, inicia sesión nuevamente.')
+        showError('Error de autenticación', 'No estás autenticado. Por favor, inicia sesión nuevamente.')
+        clearTimeout(timeoutId)
+        setIsLoading(false)
+        return
+      }
+      
+      // Actualizar contraseña directamente
+      const { data, error: updateError } = await supabase.auth.updateUser({
+        password: newPassword
+      })
+
+      if (updateError) {
+        // Manejar error específico de contraseña igual
+        if (updateError.message.includes('should be different from the old password') || 
+            updateError.message.includes('same_password')) {
+          setError('La nueva contraseña debe ser diferente a tu contraseña actual.')
+          showError('Contraseña inválida', 'La nueva contraseña debe ser diferente a tu contraseña actual.')
+        } else {
+          setError(updateError.message)
+          showError('Error al actualizar contraseña', updateError.message)
+        }
+        
+        clearTimeout(timeoutId)
+        setIsLoading(false)
+        return
+      }
+
+      setSuccess('Tu contraseña ha sido actualizada exitosamente.')
+      showSuccess('Contraseña actualizada', 'Tu contraseña ha sido cambiada correctamente.')
+      
+      // Clear form
+      setNewPassword('')
+      setConfirmPassword('')
+      
+    } catch (err: any) {
+      setError(err.message || 'Ocurrió un error al cambiar la contraseña.')
+    } finally {
+      clearTimeout(timeoutId)
+      setIsLoading(false)
+    }
+  }
+
+  if (authLoading) {
+    return <LoadingSpinner title="Verificando autenticación..." />
+  }
+
+  if (!user) {
+    return null // Will redirect to login
+  }
+
+  return (
+    <SidebarLayout 
+      title="Cambiar Contraseña"
+      description="Actualiza tu contraseña de forma segura. La nueva contraseña debe ser diferente a tu contraseña actual."
+    >
+      <div className="max-w-md mx-auto">
+        <Card className="bg-background border-none">
+          <CardContent className="p-6">
+            {success ? (
+              <div className="text-center">
+                <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                <p className="text-white text-lg mb-4">{success}</p>
+                <Button
+                  onClick={() => goBack(router)}
+                  className="w-full bg-gray-700 hover:bg-gray-600 text-white"
+                >
+                  Volver
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleChangePassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword" className="text-white">
+                    Nueva Contraseña
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="newPassword"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Ingresa tu nueva contraseña"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500 pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword" className="text-white">
+                    Confirmar Nueva Contraseña
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      placeholder="Confirma tu nueva contraseña"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500 pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="space-y-2">
+                    <div className="flex items-center text-red-500 text-sm">
+                      <XCircle className="w-4 h-4 mr-2" />
+                      {error}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setError(null)
+                        setNewPassword('')
+                        setConfirmPassword('')
+                      }}
+                      className="w-full bg-gray-800 border-gray-700 text-white hover:bg-gray-700 text-sm"
+                    >
+                      Limpiar formulario
+                    </Button>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Button
+                    type="submit"
+                    className="w-full bg-gray-700 hover:bg-gray-600 text-white"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Cambiando...' : 'Cambiar Contraseña'}
+                  </Button>
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => goBack(router)}
+                    className="w-full bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Volver
+                  </Button>
+                </div>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </SidebarLayout>
+  )
+}

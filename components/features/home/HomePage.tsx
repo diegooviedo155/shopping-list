@@ -3,68 +3,60 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from 'framer-motion'
-import { Button } from '../../atoms'
+import { Button, CategoryCardSkeleton } from '../../atoms'
 import { CategoryCard } from '../../organisms'
-import { PageLayout } from '../../templates'
-import { usePageTransitions } from '../../../hooks'
-import { useUnifiedShopping } from '../../../hooks/use-unified-shopping'
+import { SidebarLayout } from '../../sidebar-layout'
+import { ProtectedRoute } from '../../auth/protected-route'
+import { useHybridShoppingSimple as useHybridShopping } from '../../../hooks/use-hybrid-shopping-simple'
 import { useToast } from '../../../hooks/use-toast'
-import { LoadingSpinner } from '@/components/loading-states'
+import { useAuth } from '../../auth/auth-provider'
+import { LoadingSpinner as LoadingSpinnerOld } from '@/components/loading-states'
+import { LoadingSpinner } from '@/components/loading-spinner'
 import { ErrorBoundary } from '@/components/error-boundary'
+import { ErrorHandler } from '@/components/error-handler'
 import { AddProductModal } from '@/components/modals'
 import { cn } from '@/lib/utils'
-import { Plus, ShoppingCart, Settings, ShoppingBasket } from 'lucide-react'
+import { ITEM_STATUS } from '@/lib/constants/item-status'
+import { formatCategoryForUI } from '@/lib/constants/categories'
+import { Plus, ShoppingCart, Settings, ShoppingBasket, Users } from 'lucide-react'
+import { ShareListButton, AccessRequestsPanel } from '../../shared-lists'
 
-const CATEGORIES = [
-  {
-    id: 'supermercado',
-    name: 'Supermercado',
-    color: '#10b981',
-    icon: '🛒',
-  },
-  {
-    id: 'verduleria',
-    name: 'Verdulería',
-    color: '#f59e0b',
-    icon: '🥬',
-  },
-  {
-    id: 'carniceria',
-    name: 'Carnicería',
-    color: '#0891b2',
-    icon: '🥩',
-  },
-  {
-    id: 'panaderia',
-    name: 'Panadería',
-    color: '#8b5cf6',
-    icon: '🍞',
-  },
-  {
-    id: 'farmacia',
-    name: 'Farmacia',
-    color: '#10b981',
-    icon: '💊',
-  },
-  {
-    id: 'otro',
-    name: 'Otro',
-    color: '#6b7280',
-    icon: '📦',
-  },
-]
+// Correo del administrador
+const ADMIN_EMAIL = "diegooviedo155@gmail.com"
 
 export function HomePage() {
-  const router = useRouter()
-  const { items, loading, error, itemsByCategory, addItem, refetch } = useUnifiedShopping()
-  const { showError } = useToast()
-  const { StaggerContainer, StaggerItem } = usePageTransitions()
-  const [isHydrated, setIsHydrated] = useState(false)
+      const router = useRouter()
+      const { 
+        items, 
+        categories, 
+        loading, 
+        error, 
+        itemsByCategory, 
+        addItem, 
+        refetch, 
+        clearError,
+        activeSharedList,
+        sharedListItems,
+        sharedListLoading
+      } = useHybridShopping()
+      const { showError, showSuccess } = useToast()
+      const [isHydrated, setIsHydrated] = useState(false)
+      const { user, isLoading: authLoading } = useAuth()
+      const [showAccessRequestsPanel, setShowAccessRequestsPanel] = useState(false)
 
   // Manejar hidratación
   useEffect(() => {
     setIsHydrated(true)
   }, [])
+
+  // Forzar inicialización si no hay categorías
+  useEffect(() => {
+    if (isHydrated && categories.length === 0 && !loading) {
+      refetch(true)
+    }
+  }, [isHydrated, categories.length, loading, refetch])
+
+
 
   // Manejar errores
   useEffect(() => {
@@ -84,85 +76,114 @@ export function HomePage() {
   const handleAddItem = async (data: { name: string; categoryId: string; status: string }) => {
     try {
       await addItem(data.name, data.categoryId, data.status)
-      showError('Producto agregado exitosamente', 'success')
-      // No necesitamos refetch() porque addItem ya actualiza el estado optimistamente
+      showSuccess('Producto agregado exitosamente', 'El producto se ha agregado a tu lista')
     } catch (error) {
-      showError('Error al agregar el producto', 'error')
+      showError('Error al agregar el producto', 'No se pudo agregar el producto a la lista')
     }
   }
 
+
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <LoadingSpinner size="lg" className="mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Cargando productos...</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner title="Cargando productos..." />
   }
 
   return (
-    <ErrorBoundary>
-      <PageLayout>
-        <StaggerContainer>
-          {/* Header */}
-          <StaggerItem>
+    <ProtectedRoute>
+      <ErrorBoundary>
+        <ErrorHandler error={error} onClearError={clearError} />
+        <SidebarLayout>
+        <div>
+          {/* Indicador de Lista Compartida */}
+          {activeSharedList && (
             <motion.div
-              className="text-center mb-8"
-              initial={{ opacity: 0, y: 20 }}
+              className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg"
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <h1 className="text-4xl font-bold text-foreground mb-2">
-                Listas de Compras
-              </h1>
-              <p className="text-muted-foreground text-lg">
-                Organiza tus compras por categoría
-              </p>
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <div>
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+                    Lista Compartida: {activeSharedList.name}
+                  </h3>
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    {activeSharedList.description || 'Colaborando en tiempo real'}
+                  </p>
+                </div>
+              </div>
             </motion.div>
-          </StaggerItem>
+          )}
 
           {/* Categories Grid */}
-          <StaggerItem>
+          <div>
             <motion.div
               className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              {CATEGORIES.map((category, index) => {
-                // Solo calcular estadísticas después de la hidratación para evitar discrepancias
-                const categoryItems = isHydrated ? itemsByCategory(category.id as any) : []
-                const completedCount = isHydrated ? categoryItems.filter(item => item.completed).length : 0
-                const totalCount = isHydrated ? categoryItems.length : 0
-                const progress = isHydrated && totalCount > 0 ? (completedCount / totalCount) * 100 : 0
+                    {loading ? (
+                      // Mostrar skeletons mientras cargan las categorías
+                      Array.from({ length: 6 }).map((_, index) => (
+                        <motion.div
+                          key={`skeleton-${index}`}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.1 * index }}
+                        >
+                          <CategoryCardSkeleton />
+                        </motion.div>
+                      ))
+                    ) : categories.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">No hay categorías disponibles</p>
+                      </div>
+                    ) : (
+                      (() => {
+                        const activeCategories = categories.filter(cat => cat.isActive !== false) // Show all categories if isActive is undefined
+                        const sortedCategories = activeCategories.sort((a, b) => a.orderIndex - b.orderIndex)
+                        return sortedCategories.map((category, index) => {
+                  const formattedCategory = formatCategoryForUI(category)
+                  // Calcular estadísticas de items por categoría (solo este mes)
+                  const allCategoryItems = itemsByCategory(category.slug)
+                  const categoryItems = allCategoryItems.filter(item => item.status === ITEM_STATUS.THIS_MONTH)
+                  
+                  const completedCount = categoryItems.filter(item => item.completed).length
+                  const totalCount = categoryItems.length
+                  const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0
 
-                return (
-                  <motion.div
-                    key={category.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.1 * index }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <CategoryCard
-                      category={category}
-                      itemCount={totalCount}
-                      completedCount={completedCount}
-                      progress={progress}
-                      isLoading={!isHydrated}
-                      onClick={() => handleCategoryClick(category.id)}
-                    />
-                  </motion.div>
-                )
-              })}
+
+
+
+
+                  return (
+                    <motion.div
+                      key={category.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.1 * index }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <CategoryCard
+                        category={formattedCategory}
+                        itemCount={totalCount}
+                        completedCount={completedCount}
+                        progress={progress}
+                              isLoading={!isHydrated || loading}
+                        onClick={() => handleCategoryClick(category.slug)}
+                      />
+                    </motion.div>
+                  )
+                })
+                      })()
+                    )}
             </motion.div>
-          </StaggerItem>
+          </div>
 
           {/* Action Buttons */}
-          <StaggerItem>
+          <div>
             <motion.div
               className="flex flex-col sm:flex-row gap-4 justify-center"
               initial={{ opacity: 0, y: 20 }}
@@ -179,14 +200,29 @@ export function HomePage() {
 
                 Gestionar productos
               </Button>
+              {user?.email === ADMIN_EMAIL && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => router.push('/admin/categories')}
+                  className="cursor-pointer gap-2 h-16 text-white"
+                >
+                  <Settings className="w-4 h-4" />
+                  Gestionar Categorías
+                </Button>
+              )}
+              <ShareListButton 
+                listName="Mi Lista Personal"
+                className="cursor-pointer h-16"
+              />
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() => router.push('/admin/categories')}
+                onClick={() => setShowAccessRequestsPanel(true)}
                 className="cursor-pointer gap-2 h-16 text-white"
               >
-                <Settings className="w-4 h-4" />
-                Gestionar Categorías
+                <Users className="w-4 h-4" />
+                Solicitudes de Acceso
               </Button>
               <AddProductModal
                 onAddItem={handleAddItem}
@@ -203,10 +239,10 @@ export function HomePage() {
               />
 
             </motion.div>
-          </StaggerItem>
+          </div>
 
           {/* Stats */}
-          <StaggerItem>
+          <div>
             <motion.div
               className="mt-12 text-center"
               initial={{ opacity: 0, y: 20 }}
@@ -216,35 +252,42 @@ export function HomePage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto">
                 <div className="bg-card border border-border rounded-lg p-6">
                   <div className="text-2xl font-bold text-foreground mb-1">
-                    {isHydrated ? items.length : 0}
+                    {items.filter(item => item.status === ITEM_STATUS.THIS_MONTH).length}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    Total Productos
+                    Este Mes
                   </div>
                 </div>
 
                 <div className="bg-card border border-border rounded-lg p-6">
                   <div className="text-2xl font-bold text-green-500 mb-1">
-                    {isHydrated ? items.filter(item => item.completed).length : 0}
+                    {items.filter(item => item.status === ITEM_STATUS.THIS_MONTH && item.completed).length}
                   </div>
                   <div className="text-sm text-muted-foreground">
                     Completados
                   </div>
                 </div>
 
-                <div className="bg-card border border-border rounded-lg p-6">
-                  <div className="text-2xl font-bold text-orange-500 mb-1">
-                    {CATEGORIES.length}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Categorías
-                  </div>
-                </div>
+                      <div className="bg-card border border-border rounded-lg p-6">
+                        <div className="text-2xl font-bold text-orange-500 mb-1">
+                          {isHydrated ? categories.filter(cat => cat.isActive).length : 0}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Categorías
+                        </div>
+                      </div>
               </div>
             </motion.div>
-          </StaggerItem>
-        </StaggerContainer>
-      </PageLayout>
-    </ErrorBoundary>
+          </div>
+        </div>
+        
+        {/* Panel de solicitudes de acceso */}
+        <AccessRequestsPanel
+          isOpen={showAccessRequestsPanel}
+          onClose={() => setShowAccessRequestsPanel(false)}
+        />
+        </SidebarLayout>
+      </ErrorBoundary>
+    </ProtectedRoute>
   )
 }

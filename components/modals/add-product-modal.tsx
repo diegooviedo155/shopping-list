@@ -28,37 +28,10 @@ import { Badge } from '@/components/ui/badge'
 import { Plus, Loader2, X, ShoppingCart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createItemSchema, type CreateItemInput } from '@/lib/validations/shopping'
-import { useCategories } from '@/hooks/use-categories'
+import { useHybridShoppingSimple as useHybridShopping } from '@/hooks/use-hybrid-shopping-simple'
 import { ITEM_STATUS, ITEM_STATUS_LABELS } from '@/lib/constants/item-status'
+import { getIconEmoji, formatCategoryForUI } from '@/lib/constants/categories'
 
-// Mapeo de iconos de string a emoji
-const ICON_MAP: Record<string, string> = {
-  'shopping-cart': '🛒',
-  'carrot': '🥕',
-  'beef': '🥩',
-  'bread': '🍞',
-  'pills': '💊',
-  'package': '📦',
-  'apple': '🍎',
-  'milk': '🥛',
-  'fish': '🐟',
-  'chicken': '🐔',
-  'cheese': '🧀',
-  'egg': '🥚',
-  'vegetable': '🥬',
-  'fruit': '🍊',
-  'meat': '🥩',
-  'dairy': '🥛',
-  'bakery': '🍞',
-  'pharmacy': '💊',
-  'other': '📦',
-}
-
-// Función helper para obtener el emoji del icono
-const getIconEmoji = (iconString: string | null | undefined): string => {
-  if (!iconString) return '📦'
-  return ICON_MAP[iconString] || iconString // Si no está en el mapa, usar el string original (por si ya es un emoji)
-}
 
 interface AddProductModalProps {
   onAddItem: (data: CreateItemInput) => Promise<void>
@@ -69,9 +42,9 @@ interface AddProductModalProps {
 export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddProductModalProps) {
   const [open, setOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string>('')
-  const [selectedStatus, setSelectedStatus] = useState<'este-mes' | 'proximo-mes'>('este-mes')
+  const [selectedStatus, setSelectedStatus] = useState<'este_mes' | 'proximo_mes'>('este_mes')
   
-  const { categories, loading: categoriesLoading } = useCategories()
+  const { categories, loading: categoriesLoading, activeSharedList } = useHybridShopping()
 
   const {
     register,
@@ -85,7 +58,7 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
     defaultValues: {
       name: '',
       categoryId: 'supermercado',
-      status: 'este-mes',
+      status: 'este_mes',
     },
   })
 
@@ -94,8 +67,8 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
   // Set default category when categories load
   useEffect(() => {
     if (categories.length > 0 && !selectedCategory) {
-      setSelectedCategory(categories[0].id)
-      setValue('categoryId', categories[0].id)
+      setSelectedCategory(categories[0].slug)
+      setValue('categoryId', categories[0].slug)
     }
   }, [categories, selectedCategory, setValue])
 
@@ -103,7 +76,7 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
     try {
       await onAddItem({
         ...data,
-        category: selectedCategory,
+        categoryId: selectedCategory,
         status: selectedStatus,
       })
       reset()
@@ -113,14 +86,14 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
     }
   }
 
-  const isFormValid = watchedName?.trim().length >= 2 && !isSubmitting && !isLoading
+  const isFormValid = watchedName?.trim().length >= 2 && selectedCategory && !isSubmitting && !isLoading
 
   const handleCategoryChange = (categoryId: string) => {
     setSelectedCategory(categoryId)
     setValue('categoryId', categoryId)
   }
 
-  const handleStatusChange = (status: 'este-mes' | 'proximo-mes') => {
+  const handleStatusChange = (status: 'este_mes' | 'proximo_mes') => {
     setSelectedStatus(status)
     setValue('status', status)
   }
@@ -148,7 +121,13 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
             Agregar Producto
           </DialogTitle>
           <DialogDescription>
-            Completa los datos del producto que quieres agregar a tu lista.
+            {activeSharedList ? (
+              <div>
+                Agregando a la lista compartida: <span className="font-semibold text-blue-600 dark:text-blue-400">{activeSharedList.name}</span>
+              </div>
+            ) : (
+              'Completa los datos del producto que quieres agregar a tu lista.'
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -186,7 +165,7 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
               </SelectTrigger>
               <SelectContent>
                 {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
+                  <SelectItem key={category.id} value={category.slug}>
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{getIconEmoji(category.icon)}</span>
                       <span>{category.name}</span>
@@ -203,8 +182,8 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
             <div className="grid grid-cols-2 gap-2">
               <Button
                 type="button"
-                variant={selectedStatus === 'este-mes' ? 'default' : 'outline'}
-                onClick={() => handleStatusChange('este-mes')}
+                variant={selectedStatus === 'este_mes' ? 'default' : 'outline'}
+                onClick={() => handleStatusChange('este_mes')}
                 disabled={isSubmitting || isLoading}
                 className="h-11"
               >
@@ -212,8 +191,8 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
               </Button>
               <Button
                 type="button"
-                variant={selectedStatus === 'proximo-mes' ? 'default' : 'outline'}
-                onClick={() => handleStatusChange('proximo-mes')}
+                variant={selectedStatus === 'proximo_mes' ? 'default' : 'outline'}
+                onClick={() => handleStatusChange('proximo_mes')}
                 disabled={isSubmitting || isLoading}
                 className="h-11"
               >
@@ -232,11 +211,11 @@ export function AddProductModal({ onAddItem, isLoading = false, trigger }: AddPr
               <p className="text-sm font-medium text-muted-foreground">Resumen:</p>
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="gap-1">
-                  {getIconEmoji(categories.find(c => c.id === selectedCategory)?.icon)}
-                  {categories.find(c => c.id === selectedCategory)?.name}
+                  {getIconEmoji(categories.find(c => c.slug === selectedCategory)?.icon)}
+                  {categories.find(c => c.slug === selectedCategory)?.name}
                 </Badge>
                 <Badge variant="outline">
-                  {ITEM_STATUS_LABELS[selectedStatus]}
+                  {selectedStatus === 'este_mes' ? 'Este mes' : 'Próximo mes'}
                 </Badge>
               </div>
             </motion.div>

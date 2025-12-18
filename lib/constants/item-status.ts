@@ -1,6 +1,6 @@
 export const ITEM_STATUS = {
-  THIS_MONTH: "este-mes",
-  NEXT_MONTH: "proximo-mes",
+  THIS_MONTH: "este_mes",
+  NEXT_MONTH: "proximo_mes",
 } as const;
 
 export type ItemStatusType = typeof ITEM_STATUS[keyof typeof ITEM_STATUS];

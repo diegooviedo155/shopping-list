@@ -282,15 +282,112 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const resetPassword = async (email: string) => {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      // Verificar que el email sea válido
+      if (!email || !email.includes('@')) {
+        throw new Error('Por favor ingresa un email válido')
+      }
+
+      // Verificar que Supabase esté configurado
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        throw new Error('La configuración de autenticación no está disponible')
+      }
+
+      // Usar la ruta correcta basada en lo que existe en la app
+      const redirectUrl = `${window.location.origin}/reset-password-simple`
+      
+      console.log('Enviando email de recuperación a:', email)
+      console.log('URL de redirección:', redirectUrl)
+      console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+      
+      // Agregar timeout para evitar que se quede colgado
+      const resetPasswordPromise = supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: redirectUrl,
+      })
+      
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('La solicitud tardó demasiado. Verifica tu conexión a internet.')), 15000)
       })
 
-      if (error) throw error
-      showSuccess('Email enviado', 'Revisa tu bandeja de entrada para restablecer tu contraseña')
+      let result
+      try {
+        result = await Promise.race([resetPasswordPromise, timeoutPromise]) as { data: any, error: any }
+      } catch (raceError) {
+        console.error('Error en Promise.race:', raceError)
+        
+        // Si es un error de timeout o de red
+        if (raceError instanceof Error) {
+          if (raceError.message.includes('timeout') || raceError.message.includes('tardó demasiado')) {
+            throw new Error('La solicitud tardó demasiado. Verifica tu conexión a internet e intenta nuevamente.')
+          } else if (raceError.message.includes('Failed to fetch') || raceError.message.includes('NetworkError') || raceError.message.includes('ERR_FAILED')) {
+            // Diagnosticar el problema
+            console.error('Error de red detectado. Verificando configuración...')
+            console.error('Supabase URL configurada:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
+            console.error('Supabase Key configurada:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+            
+            // Verificar si hay service workers activos
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then((registrations) => {
+                if (registrations.length > 0) {
+                  console.warn(`⚠️ Hay ${registrations.length} service worker(s) activo(s) que podrían estar interceptando peticiones`)
+                }
+              })
+            }
+            
+            throw new Error('Error de conexión. Verifica tu conexión a internet y que Supabase esté disponible. Si el problema persiste, verifica la configuración de Supabase en el dashboard.')
+          }
+        }
+        throw raceError
+      }
+
+      const { data, error } = result
+
+      console.log('Respuesta de resetPasswordForEmail:', { data, error })
+
+      if (error) {
+        console.error('Error de Supabase al enviar email:', error)
+        console.error('Detalles del error:', {
+          message: error.message,
+          status: error.status,
+          name: error.name
+        })
+        
+        // Proporcionar mensajes de error más específicos
+        if (error.message.includes('rate limit') || error.message.includes('too many')) {
+          throw new Error('Demasiados intentos. Por favor espera unos minutos antes de intentar nuevamente.')
+        } else if (error.message.includes('email') || error.message.includes('not found') || error.message.includes('does not exist')) {
+          throw new Error('El email no está registrado en nuestro sistema.')
+        } else if (error.message.includes('disabled') || error.message.includes('not enabled')) {
+          throw new Error('El envío de emails está deshabilitado. Por favor contacta al administrador.')
+        } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          throw new Error('Error de conexión. Verifica tu conexión a internet y que Supabase esté disponible. Si el problema persiste, verifica la configuración de Supabase en el dashboard.')
+        } else {
+          throw new Error(error.message || 'No se pudo enviar el email de recuperación')
+        }
+      }
+
+      // Si la respuesta es exitosa, el email se envió
+      console.log('Email de recuperación enviado exitosamente')
+      showSuccess(
+        'Email enviado', 
+        'Revisa tu bandeja de entrada (y la carpeta de spam) para restablecer tu contraseña'
+      )
     } catch (error) {
       console.error('Error sending reset email:', error)
-      showError('Error', 'No se pudo enviar el email de recuperación')
+      
+      let errorMessage = 'No se pudo enviar el email de recuperación'
+      
+      if (error instanceof Error) {
+        errorMessage = error.message
+        
+        // Manejar errores de red específicamente
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.message.includes('ERR_FAILED')) {
+          errorMessage = 'Error de conexión. Verifica tu conexión a internet y que Supabase esté disponible. Si el problema persiste, verifica la configuración de Supabase en el dashboard.'
+        } else if (error.message.includes('timeout') || error.message.includes('tardó demasiado')) {
+          errorMessage = 'La solicitud tardó demasiado. Verifica tu conexión a internet e intenta nuevamente.'
+        }
+      }
+      
+      showError('Error', errorMessage)
       throw error
     }
   }

@@ -30,7 +30,7 @@ La aplicación estará disponible en [http://localhost:3000](http://localhost:30
 ## 🏗️ Arquitectura
 
 ### Frontend
-- **Next.js 15** con App Router
+- **Next.js 16.1** con App Router
 - **React 19** con hooks modernos
 - **TypeScript** para type safety
 - **Tailwind CSS** para estilos

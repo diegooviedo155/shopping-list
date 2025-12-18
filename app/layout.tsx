@@ -6,6 +6,9 @@ import { Toaster } from "@/components/ui/toaster"
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import { isSupabaseConfigured } from "@/lib/supabase/mock"
+import { ErrorLogViewer } from "@/components/error-log-viewer"
+import { ErrorLoggerInit } from "@/components/error-logger-init"
+import { AuthErrorHandler } from "@/components/auth-error-handler"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -78,7 +81,33 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="dark" suppressHydrationWarning>
-      <head>{/* oauth-handler eliminado para evitar 404 y recargas */}</head>
+      <head>
+        {/* oauth-handler eliminado para evitar 404 y recargas */}
+        {/* Script para desregistrar service workers antes de que React se cargue */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                  for(var i = 0; i < registrations.length; i++) {
+                    registrations[i].unregister();
+                  }
+                });
+                // También limpiar caches
+                if ('caches' in window) {
+                  caches.keys().then(function(cacheNames) {
+                    return Promise.all(
+                      cacheNames.map(function(cacheName) {
+                        return caches.delete(cacheName);
+                      })
+                    );
+                  });
+                }
+              }
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
@@ -87,6 +116,9 @@ export default function RootLayout({
             {children}
             <Toaster />
             <PWAInstallPrompt />
+            <ErrorLoggerInit />
+            <AuthErrorHandler />
+            {process.env.NODE_ENV === 'development' && <ErrorLogViewer />}
           </AuthProvider>
         </ThemeProvider>
       </body>

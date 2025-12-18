@@ -19,9 +19,63 @@ export function PWAInstallPrompt() {
   const [isInstalled, setIsInstalled] = useState(false)
 
   useEffect(() => {
-    // Registrar service worker solo en producción para evitar recargas en dev
-    if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {})
+    // DESHABILITADO: Desregistrar todos los service workers para evitar problemas con Supabase
+    // El service worker está causando problemas al interceptar peticiones a Supabase
+    if ('serviceWorker' in navigator) {
+      // Desregistrar TODOS los service workers inmediatamente (producción y desarrollo)
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        if (registrations.length > 0) {
+          console.log(`Desregistrando ${registrations.length} service worker(s)...`)
+          Promise.all(
+            registrations.map((registration) => registration.unregister())
+          ).then(() => {
+            console.log('Todos los service workers han sido desregistrados')
+            // Limpiar caches también
+            if ('caches' in window) {
+              caches.keys().then((cacheNames) => {
+                return Promise.all(
+                  cacheNames.map((cacheName) => caches.delete(cacheName))
+                )
+              }).then(() => {
+                console.log('Todos los caches han sido limpiados')
+              })
+            }
+          })
+        }
+      })
+      
+      // Solo registrar si realmente se necesita (PWA instalada o usuario lo solicita)
+      // Por ahora, deshabilitamos el registro automático para evitar problemas
+      // El service worker se puede registrar manualmente cuando sea necesario
+      
+      // Comentado temporalmente para evitar problemas con Supabase
+      /*
+      setTimeout(() => {
+        navigator.serviceWorker
+          .register('/sw.js', { updateViaCache: 'none' })
+          .then((registration) => {
+            console.log('Service Worker registrado:', registration.scope)
+            // Forzar actualización del service worker
+            registration.update()
+            
+            // Escuchar actualizaciones
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing
+              if (newWorker) {
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // Nuevo service worker disponible, recargar
+                    window.location.reload()
+                  }
+                })
+              }
+            })
+          })
+          .catch((error) => {
+            console.warn('Error al registrar Service Worker:', error)
+          })
+      }, 1000)
+      */
     }
 
     // Verificar si ya está instalado

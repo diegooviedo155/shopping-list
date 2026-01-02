@@ -38,6 +38,7 @@ interface SharedList {
   name: string
   ownerEmail: string
   ownerName: string
+  ownerId: string
   memberCount: number
   itemCount: number
   createdAt: string
@@ -124,6 +125,7 @@ export default function SharedListsPage() {
             name: list.list_name,
             ownerEmail: list.owner_email,
             ownerName: list.owner_name,
+            ownerId: list.list_owner_id,
             memberCount: 1,
             itemCount: 0,
             createdAt: list.granted_at
@@ -426,7 +428,7 @@ export default function SharedListsPage() {
                             </span>
                           </div>
                           <Button asChild>
-                            <Link href={`/shared-list/c043a418-2e7c-400b-8c96-be488ce6074e?list=${encodeURIComponent(list.name)}`}>
+                            <Link href={`/shared-list/${list.ownerId}?list=${encodeURIComponent(list.name)}`}>
                               <User className="w-4 h-4 mr-2" />
                               Ver Lista
                             </Link>

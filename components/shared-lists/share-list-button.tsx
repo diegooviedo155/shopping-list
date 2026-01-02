@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -24,21 +24,33 @@ interface ShareListButtonProps {
 
 export function ShareListButton({ listName = "Mi Lista", className }: ShareListButtonProps) {
   const { showSuccess, showError } = useToast()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [open, setOpen] = useState(false)
   const [shareMethod, setShareMethod] = useState<'whatsapp' | 'link'>('whatsapp')
   const [message, setMessage] = useState('')
   const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(false)
+  
+  // Obtener nombre del dueño
+  const ownerName = profile?.full_name || user?.email?.split('@')[0] || 'Usuario'
 
   // Generar enlace de solicitud con el ID del usuario
-  const shareLink = user ? 
-    `${window.location.origin}/shared-list/${user.id}?list=${encodeURIComponent(listName)}` :
-    `${window.location.origin}/request-access?list=${encodeURIComponent(listName)}`
+  // Usar useMemo para calcular solo en el cliente
+  const shareLink = useMemo(() => {
+    if (typeof window === 'undefined') return ''
+    
+    // Obtener la URL base correcta (usar variable de entorno si está disponible)
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+    
+    return user ? 
+      `${baseUrl}/shared-list/${user.id}?list=${encodeURIComponent(listName)}` :
+      `${baseUrl}/request-access?list=${encodeURIComponent(listName)}`
+  }, [user, listName])
 
   // Compartir por WhatsApp
   const shareViaWhatsApp = () => {
-    const whatsappMessage = message || `¡Hola! Te invito a colaborar en mi lista de compras "${listName}". Haz clic en el enlace para ver y agregar productos: ${shareLink}`
+    const defaultMessage = `¡Hola! 👋\n\n${ownerName} te invita a colaborar en su lista de compras "${listName}" en Lo Que Falta.\n\n🔗 Haz clic en el enlace para ver y agregar productos:\n${shareLink}\n\n✨ Podrás agregar productos pero no editarlos.`
+    const whatsappMessage = message || defaultMessage
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`
     window.open(whatsappUrl, '_blank')
     setOpen(false)
@@ -46,34 +58,37 @@ export function ShareListButton({ listName = "Mi Lista", className }: ShareListB
   }
 
   // Copiar enlace
-  const copyLink = () => {
-    // Obtener el input visible del DOM
-    const inputElement = document.getElementById('share-link-input') as HTMLInputElement
-    
-    if (inputElement) {
-      // Seleccionar el texto del input visible
-      inputElement.focus()
-      inputElement.select()
-      inputElement.setSelectionRange(0, 99999) // Para móviles
-      
-      // Copiar
-      let success = false
-      try {
-        success = document.execCommand('copy')
-      } catch (err) {
-        console.error('Error al copiar:', err)
-      }
-      
-      // Mostrar resultado
-      if (success) {
+  const copyLink = async () => {
+    try {
+      // Usar la API moderna de clipboard si está disponible
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareLink)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
         showSuccess('Éxito', 'Enlace copiado al portapapeles')
       } else {
-        showError('Error', 'No se pudo copiar. Selecciona el enlace y usa Ctrl+C.')
+        // Fallback para navegadores antiguos
+        const inputElement = document.getElementById('share-link-input') as HTMLInputElement
+        if (inputElement) {
+          inputElement.focus()
+          inputElement.select()
+          inputElement.setSelectionRange(0, 99999)
+          
+          const success = document.execCommand('copy')
+          if (success) {
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+            showSuccess('Éxito', 'Enlace copiado al portapapeles')
+          } else {
+            showError('Error', 'No se pudo copiar. Selecciona el enlace y usa Ctrl+C.')
+          }
+        } else {
+          showError('Error', 'No se encontró el campo del enlace')
+        }
       }
-    } else {
-      showError('Error', 'No se encontró el campo del enlace')
+    } catch (err) {
+      console.error('Error al copiar:', err)
+      showError('Error', 'No se pudo copiar. Selecciona el enlace y usa Ctrl+C.')
     }
   }
 

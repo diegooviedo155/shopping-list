@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -34,18 +34,42 @@ export function ShareListButton({ listName = "Mi Lista", className }: ShareListB
   // Obtener nombre del dueño
   const ownerName = profile?.full_name || user?.email?.split('@')[0] || 'Usuario'
 
+  // Función para obtener la URL base correcta
+  const getBaseUrl = useCallback(() => {
+    if (typeof window === 'undefined') return ''
+    
+    // Prioridad 1: Variable de entorno (si está configurada) - SIEMPRE usar esta si está disponible
+    if (process.env.NEXT_PUBLIC_APP_URL) {
+      return process.env.NEXT_PUBLIC_APP_URL.trim()
+    }
+    
+    // Prioridad 2: Si estamos en producción (no localhost), usar el dominio actual
+    // pero advertir si es Vercel
+    const hostname = window.location.hostname
+    const origin = window.location.origin
+    
+    if (hostname.includes('vercel.app')) {
+      console.warn(
+        '⚠️ Usando URL de Vercel para compartir. ' +
+        'Para usar tu dominio de producción, configura NEXT_PUBLIC_APP_URL en las variables de entorno de Vercel.'
+      )
+    }
+    
+    // Prioridad 3: Usar window.location.origin como fallback
+    return origin
+  }, [])
+
   // Generar enlace de solicitud con el ID del usuario
   // Usar useMemo para calcular solo en el cliente
   const shareLink = useMemo(() => {
     if (typeof window === 'undefined') return ''
     
-    // Obtener la URL base correcta (usar variable de entorno si está disponible)
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+    const baseUrl = getBaseUrl()
     
     return user ? 
       `${baseUrl}/shared-list/${user.id}?list=${encodeURIComponent(listName)}` :
       `${baseUrl}/request-access?list=${encodeURIComponent(listName)}`
-  }, [user, listName])
+  }, [user, listName, getBaseUrl])
 
   // Compartir por WhatsApp
   const shareViaWhatsApp = () => {

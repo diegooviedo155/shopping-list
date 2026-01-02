@@ -86,6 +86,7 @@ interface UnifiedShoppingState {
   getCompletedCount: (status: ItemStatus) => number;
   getTotalCount: (status: ItemStatus) => number;
   isMovingItem: (id: string) => boolean;
+  cleanupStuckMovingItems: () => void;
 }
 
 const API_BASE = "/api/shopping-items";
@@ -626,7 +627,15 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
       moveItemToStatus: async (id: string, newStatus: ItemStatus) => {
         // Obtener el estado actual del item
         const currentItem = get().items.find((item) => item.id === id);
-        if (!currentItem) return;
+        if (!currentItem) {
+          // Si el item no existe, asegurar que no esté en movingItems
+          set((state) => ({
+            movingItems: new Set(
+              [...state.movingItems].filter((itemId) => itemId !== id)
+            ),
+          }));
+          return;
+        }
 
         const oldStatus = currentItem.status;
 
@@ -644,6 +653,19 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
           );
           return { items: updatedItems };
         });
+
+        // Agregar timeout para limpiar el estado si la petición tarda demasiado
+        const cleanupTimeout = setTimeout(() => {
+          const currentState = get();
+          if (currentState.movingItems.has(id)) {
+            console.warn(`Item ${id} quedó en estado "moviendo" por más de 30 segundos. Limpiando estado.`);
+            set((state) => ({
+              movingItems: new Set(
+                [...state.movingItems].filter((itemId) => itemId !== id)
+              ),
+            }));
+          }
+        }, 30000); // 30 segundos
 
         // Luego hacer la petición a la API
         try {
@@ -677,6 +699,7 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
             ),
           }));
         } catch (error) {
+          console.error(`Error moving item ${id}:`, error);
           // Si falla, revertir el cambio
           set((state) => ({
             items: state.items.map((item) =>
@@ -685,9 +708,12 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
                 : item
             ),
           }));
-          throw error;
+          // No lanzar el error para evitar que rompa Promise.all
+          // Solo loguear el error
         } finally {
-          // Quitar de la lista de moviendo
+          // Limpiar timeout
+          clearTimeout(cleanupTimeout);
+          // Quitar de la lista de moviendo - SIEMPRE, incluso si hay error
           set((state) => ({
             movingItems: new Set(
               [...state.movingItems].filter((itemId) => itemId !== id)
@@ -779,6 +805,15 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
       // Verificar si un item está siendo movido
       isMovingItem: (id: string) => {
         return get().movingItems.has(id);
+      },
+
+      // Limpiar items que quedaron en estado "moviendo" (limpieza automática)
+      cleanupStuckMovingItems: () => {
+        const state = get();
+        if (state.movingItems.size > 0) {
+          console.warn(`Limpiando ${state.movingItems.size} item(s) que quedaron en estado "moviendo"`);
+          set({ movingItems: new Set<string>() });
+        }
       },
 
       // Funciones de búsqueda

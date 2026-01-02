@@ -76,16 +76,17 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
     const initializeStore = async () => {
       try {
         // Forzar inicialización para asegurar que los datos estén actualizados
-        // Agregar timeout para evitar que se quede colgado
+        // Agregar timeout más largo para evitar que falle prematuramente
         const initPromise = forceInitialize()
         const timeoutPromise = new Promise((_, reject) => {
-          timeoutId = setTimeout(() => reject(new Error('Initialization timeout')), 10000) // 10 segundos
+          timeoutId = setTimeout(() => reject(new Error('Initialization timeout')), 30000) // 30 segundos
         })
         
         await Promise.race([initPromise, timeoutPromise])
       } catch (error) {
         console.error('Error initializing store:', error)
         // Continuar con la hidratación incluso si hay error
+        // No mostrar error al usuario, solo loguear
       } finally {
         if (timeoutId) clearTimeout(timeoutId)
         // Asegurar que siempre se establezca isHydrated después de un tiempo razonable
@@ -300,21 +301,47 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
         return item?.name || 'Producto'
       })
 
-      // Mover todos los items seleccionados
-      await Promise.all(itemsToMove.map(id => moveItemToStatus(id, ITEM_STATUS.NEXT_MONTH)))
+      // Mover todos los items seleccionados (usar allSettled para no fallar si uno falla)
+      const results = await Promise.allSettled(
+        itemsToMove.map(id => moveItemToStatus(id, ITEM_STATUS.NEXT_MONTH))
+      )
+      
+      // Verificar si hubo errores
+      const failed = results.filter(r => r.status === 'rejected')
+      if (failed.length > 0) {
+        console.error('Algunos items no se pudieron mover:', failed)
+      }
+      
+      // Limpiar items que puedan haber quedado en estado "moviendo"
+      if (store?.cleanupStuckMovingItems) {
+        store.cleanupStuckMovingItems()
+      }
       
       // Forzar re-render manual
       setForceUpdate(prev => prev + 1)
       
       setSelectedItems(new Set())
-      showSuccess(
-        'Productos movidos',
-        `${itemNames.length} producto(s) movido(s) al próximo mes`
-      )
+      
+      if (failed.length === 0) {
+        showSuccess(
+          'Productos movidos',
+          `${itemNames.length} producto(s) movido(s) al próximo mes`
+        )
+      } else {
+        showSuccess(
+          'Productos movidos',
+          `${itemNames.length - failed.length} de ${itemNames.length} producto(s) movido(s) al próximo mes`
+        )
+      }
     } catch (error) {
-      showError('Error', 'No se pudieron mover los productos')
+      console.error('Error moving items:', error)
+      // Limpiar items que puedan haber quedado en estado "moviendo"
+      if (store?.cleanupStuckMovingItems) {
+        store.cleanupStuckMovingItems()
+      }
+      showError('Error', 'No se pudieron mover algunos productos')
     }
-  }, [selectedItems, currentItems, moveItemToStatus, showSuccess, showError])
+  }, [selectedItems, currentItems, moveItemToStatus, showSuccess, showError, store])
 
   // Mover items seleccionados a este mes
   const handleMoveSelectedToThisMonth = useCallback(async () => {
@@ -327,21 +354,47 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
         return item?.name || 'Producto'
       })
 
-      // Mover todos los items seleccionados
-      await Promise.all(itemsToMove.map(id => moveItemToStatus(id, ITEM_STATUS.THIS_MONTH)))
+      // Mover todos los items seleccionados (usar allSettled para no fallar si uno falla)
+      const results = await Promise.allSettled(
+        itemsToMove.map(id => moveItemToStatus(id, ITEM_STATUS.THIS_MONTH))
+      )
+      
+      // Verificar si hubo errores
+      const failed = results.filter(r => r.status === 'rejected')
+      if (failed.length > 0) {
+        console.error('Algunos items no se pudieron mover:', failed)
+      }
+      
+      // Limpiar items que puedan haber quedado en estado "moviendo"
+      if (store?.cleanupStuckMovingItems) {
+        store.cleanupStuckMovingItems()
+      }
       
       // Forzar re-render manual
       setForceUpdate(prev => prev + 1)
       
       setSelectedItems(new Set())
-      showSuccess(
-        'Productos movidos',
-        `${itemNames.length} producto(s) movido(s) a este mes`
-      )
+      
+      if (failed.length === 0) {
+        showSuccess(
+          'Productos movidos',
+          `${itemNames.length} producto(s) movido(s) a este mes`
+        )
+      } else {
+        showSuccess(
+          'Productos movidos',
+          `${itemNames.length - failed.length} de ${itemNames.length} producto(s) movido(s) a este mes`
+        )
+      }
     } catch (error) {
-      showError('Error', 'No se pudieron mover los productos')
+      console.error('Error moving items:', error)
+      // Limpiar items que puedan haber quedado en estado "moviendo"
+      if (store?.cleanupStuckMovingItems) {
+        store.cleanupStuckMovingItems()
+      }
+      showError('Error', 'No se pudieron mover algunos productos')
     }
-  }, [selectedItems, currentItems, moveItemToStatus, showSuccess, showError])
+  }, [selectedItems, currentItems, moveItemToStatus, showSuccess, showError, store])
 
   // Mover item al mes que viene (memoizado)
   const handleMoveToNextMonth = useCallback(async (id: string) => {

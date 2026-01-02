@@ -117,9 +117,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     loadSharedLists()
   }, [user])
 
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  
   const handleLogout = async () => {
-    await logout()
-    // El logout ya maneja la redirección
+    if (isLoggingOut) return // Prevenir múltiples clics
+    setIsLoggingOut(true)
+    try {
+      await logout()
+      // El logout ya maneja la redirección
+    } catch (error) {
+      console.error('Error en logout:', error)
+      setIsLoggingOut(false)
+    }
   }
 
   return (
@@ -245,9 +254,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleLogout}>
+            <SidebarMenuButton onClick={handleLogout} disabled={isLoggingOut}>
               <LogOut className="size-4" />
-              <span>Cerrar Sesión</span>
+              <span>{isLoggingOut ? 'Cerrando sesión...' : 'Cerrar Sesión'}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

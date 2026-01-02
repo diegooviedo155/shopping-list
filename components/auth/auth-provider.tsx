@@ -51,7 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout | null = null
-    let subscription: { unsubscribe: () => void } | null = null
+    let subscription: { unsubscribe?: () => void } | null = null
+    let isMounted = true
 
     const getInitialSession = async () => {
       try {
@@ -63,6 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const result = await Promise.race([sessionPromise, timeoutPromise])
         const { data: { session }, error } = result as { data: { session: Session | null }, error: any }
+
+        if (!isMounted) return
 
         if (error) {
           console.warn('Error getting session:', error)
@@ -93,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         // Si hay timeout o cualquier otro error, continuar sin sesión
+        if (!isMounted) return
         console.warn('Session check failed:', error instanceof Error ? error.message : 'Unknown error')
         // Limpiar tokens inválidos
         if (typeof window !== 'undefined') {
@@ -111,17 +115,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null)
       } finally {
         if (timeoutId) clearTimeout(timeoutId)
-        setIsLoading(false)
+        if (isMounted) setIsLoading(false)
       }
     }
 
     getInitialSession()
 
     try {
-      const { data } = supabase.auth.onAuthStateChange(
+      const authStateChangeResult = supabase.auth.onAuthStateChange(
         async (event: any, session: any) => {
-          setSession(session)
-          setUser(session?.user ?? null)
+          if (!isMounted) return
+
+          // Evitar actualizaciones innecesarias
+          setSession((prevSession) => {
+            if (prevSession?.access_token === session?.access_token) {
+              return prevSession
+            }
+            return session
+          })
+          
+          setUser((prevUser) => {
+            if (prevUser?.id === session?.user?.id) {
+              return prevUser
+            }
+            return session?.user ?? null
+          })
 
           if (session?.user) {
             await fetchProfile(session.user.id)
@@ -132,15 +150,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsLoading(false)
         }
       )
-      subscription = data
+      
+      // onAuthStateChange puede devolver directamente la suscripción o un objeto con data
+      if (authStateChangeResult && typeof authStateChangeResult === 'object') {
+        if ('subscription' in authStateChangeResult) {
+          subscription = authStateChangeResult.subscription as { unsubscribe?: () => void }
+        } else if ('data' in authStateChangeResult && authStateChangeResult.data) {
+          subscription = authStateChangeResult.data as { unsubscribe?: () => void }
+        } else if ('unsubscribe' in authStateChangeResult) {
+          subscription = authStateChangeResult as { unsubscribe?: () => void }
+        }
+      }
     } catch (error) {
       console.warn('Error setting up auth state listener:', error)
-      setIsLoading(false)
+      if (isMounted) setIsLoading(false)
     }
 
     return () => {
+      isMounted = false
       if (timeoutId) clearTimeout(timeoutId)
-      if (subscription) subscription.unsubscribe()
+      if (subscription && typeof subscription.unsubscribe === 'function') {
+        try {
+          subscription.unsubscribe()
+        } catch (error) {
+          console.warn('Error unsubscribing from auth state change:', error)
+        }
+      }
     }
   }, [fetchProfile])
 
@@ -207,33 +242,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = async () => {
+    // Prevenir múltiples llamadas simultáneas
+    if (isLoading) {
+      console.warn('Logout already in progress')
+      return
+    }
+
+    setIsLoading(true)
+    
     try {
-      // Limpiar el store antes de hacer logout
-      if (typeof window !== 'undefined') {
-        // Limpiar localStorage
-        localStorage.removeItem('unified-shopping-store')
-        localStorage.removeItem('supabase-shopping-store')
-        
-        // Limpiar sessionStorage
-        sessionStorage.clear()
-      }
-      
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
-      
+      // Limpiar el estado inmediatamente para mejor UX
       setUser(null)
       setSession(null)
       setProfile(null)
       
-      showSuccess('Sesión cerrada', 'Has cerrado sesión exitosamente')
+      // Limpiar el store y storage
+      if (typeof window !== 'undefined') {
+        try {
+          // Limpiar localStorage
+          localStorage.removeItem('unified-shopping-store')
+          localStorage.removeItem('supabase-shopping-store')
+          
+          // Limpiar todos los tokens de Supabase
+          const keys = Object.keys(localStorage)
+          keys.forEach(key => {
+            if (key.includes('supabase') || key.includes('sb-') || key.startsWith('supabase.auth.token')) {
+              localStorage.removeItem(key)
+            }
+          })
+          
+          // Limpiar sessionStorage
+          sessionStorage.clear()
+        } catch (storageError) {
+          console.warn('Error clearing storage:', storageError)
+          // Continuar con el logout aunque falle la limpieza
+        }
+      }
       
-      // Redirigir después de limpiar todo
-      setTimeout(() => {
-        window.location.href = '/login'
-      }, 100)
+      // Hacer logout con timeout para evitar que se cuelgue
+      const signOutPromise = supabase.auth.signOut()
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Logout timeout')), 5000)
+      })
+
+      try {
+        const result = await Promise.race([signOutPromise, timeoutPromise])
+        const { error } = result as { error: any }
+        
+        if (error) {
+          console.warn('Supabase signOut error:', error)
+          // Continuar con el logout local aunque falle el servidor
+        }
+      } catch (raceError) {
+        console.warn('Logout timeout or error:', raceError)
+        // Continuar con el logout local aunque falle
+      }
+      
+      // Redirigir inmediatamente sin esperar
+      if (typeof window !== 'undefined') {
+        // Usar replace para evitar que el usuario pueda volver atrás
+        window.location.replace('/login')
+      }
     } catch (error) {
-      console.error('Logout failed:', error)
-      showError('Error al cerrar sesión', 'No se pudo cerrar sesión')
+      console.error('Logout error:', error)
+      // Aún así, redirigir al login
+      if (typeof window !== 'undefined') {
+        window.location.replace('/login')
+      }
+    } finally {
+      // No establecer isLoading a false aquí porque estamos redirigiendo
     }
   }
 

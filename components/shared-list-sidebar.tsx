@@ -14,13 +14,18 @@ interface SharedListSidebarProps {
 
 export function SharedListSidebar({ listName = "Lista Compartida", ownerName = "Usuario" }: SharedListSidebarProps) {
   const [open, setOpen] = useState(false)
-  const { user, logout } = useAuth()
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const { user, logout, isLoading } = useAuth()
 
   const handleLogout = async () => {
+    if (isLoggingOut || isLoading) return // Prevenir múltiples clics
+    setIsLoggingOut(true)
     try {
       await logout()
+      // El logout ya maneja la redirección
     } catch (error) {
       console.error('Error al cerrar sesión:', error)
+      setIsLoggingOut(false)
     }
   }
 

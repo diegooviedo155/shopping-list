@@ -17,6 +17,8 @@ import { ITEM_STATUS, ITEM_STATUS_LABELS, ItemStatusType } from '@/lib/constants
 import { formatCategoryForUI } from '@/lib/constants/categories'
 import { Plus, ShoppingCart, Settings, ShoppingBasket, Users } from 'lucide-react'
 import { ShareListButton, AccessRequestsPanel } from '../../shared-lists'
+import { queuedFetch } from '@/lib/utils/request-queue'
+import { getCachedAuthHeaders } from '@/lib/utils/auth-cache'
 
 // Correo del administrador
 const ADMIN_EMAIL = "diegooviedo155@gmail.com"
@@ -65,22 +67,30 @@ export function HomePageContent({ ownerId, isSharedView = false }: HomePageConte
 
       setSharedLoading(true)
       try {
-        // Cargar items del propietario usando el API de listas compartidas
-        const itemsResponse = await fetch(`/api/shared-lists/${ownerId}/items`, {
-          credentials: 'include'
-        })
-
-        // Cargar categorías
-        const categoriesResponse = await fetch('/api/categories', {
-          credentials: 'include'
-        })
+        const headers = await getCachedAuthHeaders().catch(() => ({}))
+        
+        // Cargar items y categorías en paralelo usando queuedFetch
+        const [itemsResponse, categoriesResponse] = await Promise.all([
+          queuedFetch(`/api/shared-lists/${ownerId}/items`, {
+            method: 'GET',
+            headers,
+            credentials: 'include'
+          }, 1), // Prioridad alta
+          queuedFetch('/api/categories', {
+            method: 'GET',
+            headers,
+            credentials: 'include'
+          }, 1) // Prioridad alta
+        ])
 
         if (!itemsResponse.ok) {
           throw new Error('Error al cargar items de la lista compartida')
         }
 
-        const itemsData = await itemsResponse.json()
-        const categoriesData = await categoriesResponse.json()
+        const [itemsData, categoriesData] = await Promise.all([
+          itemsResponse.json(),
+          categoriesResponse.json()
+        ])
 
         setSharedItems(itemsData)
         setSharedCategories(categoriesData)

@@ -10,8 +10,7 @@ import { AddProductModal, EditProductModal } from '../../modals'
 import { DeleteConfirmationModal } from '../../modals/DeleteConfirmationModal'
 import { useUnifiedShopping } from '../../../hooks/use-unified-shopping'
 import { useToast } from '../../../hooks/use-toast'
-import { LoadingOverlay } from '@/components/loading-states'
-import { LoadingSpinner } from '@/components/loading-spinner'
+import { LoadingSpinner } from '@/components/loading-states'
 import { ErrorBoundary, ShoppingListErrorFallback } from '@/components/error-boundary'
 import { cn } from '@/lib/utils'
 import { Calendar, CalendarDays, Trash2, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react'
@@ -71,17 +70,43 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
 
   // Manejar hidratación
   useEffect(() => {
+    let isMounted = true
+    let timeoutId: NodeJS.Timeout
+    
     const initializeStore = async () => {
-      // Forzar inicialización para asegurar que los datos estén actualizados
-      await forceInitialize()
-      // Pequeño delay para asegurar que el estado se actualice
-      setTimeout(() => {
-        setIsHydrated(true)
-      }, 100)
+      try {
+        // Forzar inicialización para asegurar que los datos estén actualizados
+        // Agregar timeout para evitar que se quede colgado
+        const initPromise = forceInitialize()
+        const timeoutPromise = new Promise((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error('Initialization timeout')), 10000) // 10 segundos
+        })
+        
+        await Promise.race([initPromise, timeoutPromise])
+      } catch (error) {
+        console.error('Error initializing store:', error)
+        // Continuar con la hidratación incluso si hay error
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId)
+        // Asegurar que siempre se establezca isHydrated después de un tiempo razonable
+        if (isMounted) {
+          setTimeout(() => {
+            if (isMounted) {
+              setIsHydrated(true)
+            }
+          }, 100)
+        }
+      }
     }
     
     initializeStore()
-  }, [forceInitialize])
+    
+    return () => {
+      isMounted = false
+      if (timeoutId) clearTimeout(timeoutId)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Solo ejecutar una vez al montar
 
 
   const { showSuccess, showError } = useToast()
@@ -394,10 +419,22 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
           </div>
 
           {/* Items List */}
-          <LoadingOverlay isLoading={loading && filteredItems.length === 0}>
-            <div className="space-y-4">
+          <div className="space-y-4 min-h-[400px]">
+            {/* Mostrar loader solo cuando no está hidratado O cuando está cargando y no hay items */}
+            {/* Usar altura mínima para evitar saltos en la UI */}
+            {(!isHydrated || (loading && filteredItems.length === 0)) ? (
+              <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                  <LoadingSpinner size="lg" className="mx-auto mb-4 text-primary" />
+                  <p className="text-muted-foreground text-sm">
+                    {!isHydrated ? "Cargando productos..." : "Cargando..."}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
                 {/* Select All */}
-                {isHydrated && filteredItems.length > 0 && (
+                {filteredItems.length > 0 && (
                   <div className="flex items-center p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2">
                       <Checkbox
@@ -413,9 +450,7 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
                 )}
 
                 {/* Items grouped by category */}
-                {!isHydrated ? (
-                  <LoadingSpinner title="Cargando productos..." />
-                ) : filteredItems.length === 0 ? (
+                {filteredItems.length === 0 ? (
                     <div className="text-center py-12">
                       <p className="text-muted-foreground">
                         {searchQuery ? (
@@ -601,8 +636,9 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
                     })}
                   </div>
                 )}
-            </div>
-            </LoadingOverlay>
+              </>
+            )}
+          </div>
         </div>
         
         {/* Floating Action Buttons for Selected Items */}

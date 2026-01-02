@@ -6,6 +6,7 @@ import type { Category, ItemStatus } from "@/lib/types/database";
 import { ITEM_STATUS } from "@/lib/constants/item-status";
 import { supabase } from "@/lib/supabase/client";
 import { queuedFetch } from "@/lib/utils/request-queue";
+import { getCachedAuthHeaders } from "@/lib/utils/auth-cache";
 
 // Tipos simplificados para evitar problemas con domain entities
 interface SimpleShoppingItem {
@@ -90,30 +91,8 @@ interface UnifiedShoppingState {
 const API_BASE = "/api/shopping-items";
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
-// Helper function to get authorization headers
-const getAuthHeaders = async (): Promise<Record<string, string>> => {
-  try {
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-
-    if (sessionError) {
-      throw new Error("No se pudo obtener la sesión de autenticación");
-    }
-
-    if (session?.access_token) {
-      return {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      };
-    } else {
-      throw new Error("Usuario no autenticado");
-    }
-  } catch (error) {
-    throw error;
-  }
-};
+// Helper function to get authorization headers (usando caché)
+const getAuthHeaders = getCachedAuthHeaders;
 
 export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
   persist(
@@ -229,6 +208,18 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
           isRefreshing: state.items.length > 0,
         });
 
+        // Agregar timeout para evitar que se quede colgado
+        const timeoutId = setTimeout(() => {
+          const currentState = get();
+          if (currentState.loading) {
+            set({
+              loading: false,
+              error: "Timeout: La petición tardó demasiado",
+              isRefreshing: false,
+            });
+          }
+        }, 30000); // 30 segundos de timeout
+
         try {
           const headers = await getAuthHeaders();
 
@@ -296,6 +287,7 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
             };
           });
 
+          if (timeoutId) clearTimeout(timeoutId);
           set({
             items: formattedItems,
             loading: false,
@@ -303,6 +295,7 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
             isRefreshing: false,
           });
         } catch (error) {
+          if (timeoutId) clearTimeout(timeoutId);
           const errorMessage =
             error instanceof Error ? error.message : "Error desconocido";
           console.error("fetchItems: Error:", errorMessage);
@@ -616,19 +609,17 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
       },
 
       // Batch update para múltiples items (usado en "limpiar tildes")
+      // Optimizado para procesar todas las actualizaciones en paralelo usando la cola
       batchUpdateCompletedStatus: async (
         updates: Array<{ id: string; completed: boolean }>
       ) => {
-        // Procesar en lotes de 5 para no saturar
-        const batchSize = 5;
-        for (let i = 0; i < updates.length; i += batchSize) {
-          const batch = updates.slice(i, i + batchSize);
-          await Promise.all(
-            batch.map(({ id, completed }) =>
-              get().updateItem(id, { completed })
-            )
-          );
-        }
+        // Procesar todas las actualizaciones en paralelo
+        // La cola de peticiones manejará la concurrencia automáticamente
+        await Promise.all(
+          updates.map(({ id, completed }) =>
+            get().updateItem(id, { completed })
+          )
+        );
       },
 
       // Mover item a otro status con actualización optimista
@@ -657,11 +648,15 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
         // Luego hacer la petición a la API
         try {
           const headers = await getAuthHeaders();
-          const response = await fetch(`${API_BASE}/${id}`, {
-            method: "PATCH",
-            headers,
-            body: JSON.stringify({ status: newStatus }),
-          });
+          const response = await queuedFetch(
+            `${API_BASE}/${id}`,
+            {
+              method: "PATCH",
+              headers,
+              body: JSON.stringify({ status: newStatus }),
+            },
+            0
+          );
 
           if (!response.ok) {
             throw new Error(`Error ${response.status}: ${response.statusText}`);

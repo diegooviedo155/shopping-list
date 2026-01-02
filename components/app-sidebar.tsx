@@ -99,9 +99,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       
       setLoadingSharedLists(true)
       try {
-        const response = await fetch('/api/shared-lists/my-access', {
+        const { queuedFetch } = await import('@/lib/utils/request-queue')
+        const { getCachedAuthHeaders } = await import('@/lib/utils/auth-cache')
+        const headers = await getCachedAuthHeaders().catch(() => ({}))
+        const response = await queuedFetch('/api/shared-lists/my-access', {
+          method: 'GET',
+          headers,
           credentials: 'include'
-        })
+        }, 1) // Prioridad alta
         const data = await response.json()
         
         if (response.ok) {

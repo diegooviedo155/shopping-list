@@ -23,6 +23,8 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/components/auth/auth-provider'
+import { queuedFetch } from '@/lib/utils/request-queue'
+import { getCachedAuthHeaders } from '@/lib/utils/auth-cache'
 
 interface RequestAccessModalProps {
   isOpen: boolean
@@ -60,12 +62,11 @@ export function RequestAccessModal({
 
     try {
       // Crear la solicitud en la base de datos
-      const response = await fetch('/api/access-requests', {
+      const headers = await getCachedAuthHeaders()
+      const response = await queuedFetch('/api/access-requests', {
         method: 'POST',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           list_owner_id: listOwnerId,
           requester_id: user?.id,
@@ -74,7 +75,7 @@ export function RequestAccessModal({
           list_name: listName,
           message: formData.message.trim()
         })
-      })
+      }, 0)
 
       if (!response.ok) {
         const error = await response.json()

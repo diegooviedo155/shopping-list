@@ -18,6 +18,8 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/components/auth/auth-provider'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { queuedFetch } from '@/lib/utils/request-queue'
+import { getCachedAuthHeaders } from '@/lib/utils/auth-cache'
 
 import type { AccessRequestWithOwner } from '@/lib/types/access-requests'
 
@@ -40,9 +42,12 @@ export function AccessRequestsPanel({ isOpen, onClose }: AccessRequestsPanelProp
       
       setLoadingRequests(true)
       try {
-        const response = await fetch('/api/access-requests', {
+        const headers = await getCachedAuthHeaders().catch(() => ({}))
+        const response = await queuedFetch('/api/access-requests', {
+          method: 'GET',
+          headers,
           credentials: 'include'
-        })
+        }, 1) // Prioridad alta
         const data = await response.json()
         
         if (response.ok) {
@@ -65,16 +70,15 @@ export function AccessRequestsPanel({ isOpen, onClose }: AccessRequestsPanelProp
     setLoading(true)
     try {
       // Actualizar el estado de la solicitud en la base de datos
-      const response = await fetch(`/api/access-requests/${requestId}`, {
+      const headers = await getCachedAuthHeaders()
+      const response = await queuedFetch(`/api/access-requests/${requestId}`, {
         method: 'PUT',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           status: 'approved'
         }),
-      })
+      }, 0)
 
       if (!response.ok) {
         const data = await response.json()
@@ -102,16 +106,15 @@ export function AccessRequestsPanel({ isOpen, onClose }: AccessRequestsPanelProp
     setLoading(true)
     try {
       // Actualizar el estado de la solicitud en la base de datos
-      const response = await fetch(`/api/access-requests/${requestId}`, {
+      const headers = await getCachedAuthHeaders()
+      const response = await queuedFetch(`/api/access-requests/${requestId}`, {
         method: 'PUT',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           status: 'rejected'
         }),
-      })
+      }, 0)
 
       if (!response.ok) {
         const data = await response.json()

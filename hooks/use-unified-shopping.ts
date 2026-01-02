@@ -76,62 +76,72 @@ export function useUnifiedShopping(): UseUnifiedShoppingReturn {
         console.error('useUnifiedShopping: Initialization error:', error)
       });
     }
-  }, [store.hasInitialized])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.hasInitialized]) // Solo depende de hasInitialized, no del store completo
 
   // Items filtrados memoizados - forzar re-render cuando cambien los items
   const currentItems = useMemo(() => {
     return store.getItemsByStatus(store.activeTab)
-  }, [store.items, store.activeTab, store.getItemsByStatus])
+  }, [store.items, store.activeTab]) // Remover store.getItemsByStatus de dependencias
 
   // Contadores memoizados
   const completedCount = useMemo(() => {
     return store.getCompletedCount(store.activeTab)
-  }, [store.items, store.activeTab, store.getCompletedCount])
+  }, [store.items, store.activeTab]) // Remover store.getCompletedCount de dependencias
 
   const totalCount = useMemo(() => {
     return store.getTotalCount(store.activeTab)
-  }, [store.items, store.activeTab, store.getTotalCount])
+  }, [store.items, store.activeTab]) // Remover store.getTotalCount de dependencias
 
-  // Funciones wrapper memoizadas
+  // Funciones wrapper memoizadas - sin dependencias del store para evitar re-renders
   const itemsByCategory = useCallback((categorySlug: string) => {
     return store.getItemsByCategory(categorySlug)
-  }, [store.getItemsByCategory])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Store methods are stable
 
   const itemsByStatus = useCallback((status: ItemStatus) => {
     return store.getItemsByStatus(status)
-  }, [store.getItemsByStatus])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Store methods are stable
 
   const refetch = useCallback(async (force = false) => {
     await Promise.all([
       store.fetchItems(force),
       store.fetchCategories()
     ])
-  }, [store.fetchItems, store.fetchCategories])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Store methods are stable
 
   const initialize = useCallback(() => {
     return store.initialize()
-  }, [store.initialize])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Store methods are stable
 
   const forceInitialize = useCallback(() => {
     return store.forceInitialize()
-  }, [store.forceInitialize])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Store methods are stable
 
   // Funciones de búsqueda
   const itemsByStatusAndSearch = useCallback((status: ItemStatus, searchQuery?: string) => {
     return store.getItemsByStatusAndSearch(status, searchQuery)
-  }, [store.getItemsByStatusAndSearch])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Store methods are stable
 
   const itemsByCategoryAndSearch = useCallback((category: Category, searchQuery?: string) => {
     return store.getItemsByCategoryAndSearch(category, searchQuery)
-  }, [store.getItemsByCategoryAndSearch])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Store methods are stable
 
   const setSearchQuery = useCallback((query: string) => {
     store.setSearchQuery(query)
-  }, [store.setSearchQuery])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Store methods are stable
 
   const clearSearch = useCallback(() => {
     store.clearSearch()
-  }, [store.clearSearch])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Store methods are stable
 
   return {
     // Estado principal
@@ -193,7 +203,8 @@ export function useUnifiedCategoryView() {
     if (!store.hasInitialized) {
       store.initialize()
     }
-  }, [store.hasInitialized, store.initialize])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.hasInitialized]) // Solo depende de hasInitialized
 
   const getCategoryStats = useCallback((category: Category, searchQuery?: string) => {
     // Solo obtener items de "este_mes" para la vista de categoría
@@ -227,7 +238,7 @@ export function useUnifiedCategoryView() {
       totalCount,
       isLoading: store.loading && totalCount === 0,
     }
-  }, [store.getItemsByCategory, store.loading, store.items, store.hasInitialized])
+  }, [store.items, store.loading]) // Solo depende de items y loading, no de funciones del store
 
   return {
     items: store.items,

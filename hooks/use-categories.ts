@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Category, CreateCategoryData, UpdateCategoryData } from '@/lib/types/category'
+import { queuedFetch } from '@/lib/utils/request-queue'
+import { getCachedAuthHeaders } from '@/lib/utils/auth-cache'
 
 interface UseCategoriesReturn {
   categories: Category[]
@@ -24,7 +26,12 @@ export function useCategories(): UseCategoriesReturn {
       setLoading(true)
       setError(null)
       
-      const response = await fetch('/api/categories')
+      const headers = await getCachedAuthHeaders().catch(() => ({}))
+      const response = await queuedFetch('/api/categories', {
+        method: 'GET',
+        headers,
+      }, 1) // Prioridad alta
+      
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.error || 'Error al cargar las categorías')
@@ -43,11 +50,12 @@ export function useCategories(): UseCategoriesReturn {
     try {
       setError(null)
       
-      const response = await fetch('/api/categories', {
+      const headers = await getCachedAuthHeaders()
+      const response = await queuedFetch('/api/categories', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(data),
-      })
+      }, 0)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -68,11 +76,12 @@ export function useCategories(): UseCategoriesReturn {
     try {
       setError(null)
       
-      const response = await fetch(`/api/categories/${id}`, {
+      const headers = await getCachedAuthHeaders()
+      const response = await queuedFetch(`/api/categories/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(data),
-      })
+      }, 0)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -95,9 +104,11 @@ export function useCategories(): UseCategoriesReturn {
     try {
       setError(null)
       
-      const response = await fetch(`/api/categories/${id}`, {
+      const headers = await getCachedAuthHeaders()
+      const response = await queuedFetch(`/api/categories/${id}`, {
         method: 'DELETE',
-      })
+        headers,
+      }, 0)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -119,11 +130,12 @@ export function useCategories(): UseCategoriesReturn {
       const category = categories.find(cat => cat.id === id)
       if (!category) throw new Error('Categoría no encontrada')
 
-      const response = await fetch(`/api/categories/${id}`, {
+      const headers = await getCachedAuthHeaders()
+      const response = await queuedFetch(`/api/categories/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ isActive: !category.isActive }),
-      })
+      }, 0)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -143,7 +155,8 @@ export function useCategories(): UseCategoriesReturn {
 
   useEffect(() => {
     fetchCategories()
-  }, [fetchCategories])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Solo ejecutar una vez al montar
 
   return {
     categories,

@@ -29,6 +29,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { LoadingSpinner } from '@/components/loading-spinner'
+import { queuedFetch } from '@/lib/utils/request-queue'
+import { getCachedAuthHeaders } from '@/lib/utils/auth-cache'
 
 export function CategoryManagement() {
   const [categories, setCategories] = useState<Category[]>([])
@@ -44,7 +46,12 @@ export function CategoryManagement() {
       setLoading(true)
       setError(null)
       
-      const response = await fetch('/api/categories')
+      const headers = await getCachedAuthHeaders().catch(() => ({}))
+      const response = await queuedFetch('/api/categories', {
+        method: 'GET',
+        headers,
+      }, 1) // Prioridad alta
+      
       if (!response.ok) {
         throw new Error('Error al cargar las categorías')
       }
@@ -89,11 +96,12 @@ export function CategoryManagement() {
     try {
       setIsSubmitting(true)
       
-      const response = await fetch('/api/categories', {
+      const headers = await getCachedAuthHeaders()
+      const response = await queuedFetch('/api/categories', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(data),
-      })
+      }, 0)
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -116,11 +124,12 @@ export function CategoryManagement() {
     try {
       setIsSubmitting(true)
       
-      const response = await fetch(`/api/categories/${editingCategory.id}`, {
+      const headers = await getCachedAuthHeaders()
+      const response = await queuedFetch(`/api/categories/${editingCategory.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(data),
-      })
+      }, 0)
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -146,9 +155,11 @@ export function CategoryManagement() {
     try {
       setIsSubmitting(true)
       
-      const response = await fetch(`/api/categories/${deletingCategory.id}`, {
+      const headers = await getCachedAuthHeaders()
+      const response = await queuedFetch(`/api/categories/${deletingCategory.id}`, {
         method: 'DELETE',
-      })
+        headers,
+      }, 0)
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -166,11 +177,12 @@ export function CategoryManagement() {
 
   const toggleCategoryStatus = async (category: Category) => {
     try {
-      const response = await fetch(`/api/categories/${category.id}`, {
+      const headers = await getCachedAuthHeaders()
+      const response = await queuedFetch(`/api/categories/${category.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ isActive: !category.isActive }),
-      })
+      }, 0)
 
       if (!response.ok) {
         const errorData = await response.json()

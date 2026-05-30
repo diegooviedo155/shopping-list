@@ -70,14 +70,14 @@ export async function POST(request: NextRequest) {
       .from('list_access_requests')
       .select('*')
       .eq('list_owner_id', body.list_owner_id)
-      .eq('requester_id', body.requester_id || user.id)
+      .eq('requester_id', user.id)
       .eq('status', 'pending')
       .single()
 
     if (existingRequest) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'Ya tienes una solicitud pendiente para esta lista',
-        request: existingRequest 
+        request: existingRequest
       }, { status: 409 }) // 409 Conflict
     }
 
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       .from('list_access_requests')
       .insert({
         list_owner_id: body.list_owner_id,
-        requester_id: body.requester_id || user.id,
+        requester_id: user.id,
         requester_email: body.requester_email,
         requester_name: body.requester_name,
         list_name: body.list_name || 'Mi Lista Personal',
@@ -103,7 +103,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ request: newRequest }, { status: 201 })
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error desconocido'
     console.error('Error in POST /api/access-requests:', error)
-    return NextResponse.json({ error: 'Error interno del servidor: ' + error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Error interno del servidor: ' + message }, { status: 500 })
   }
 }

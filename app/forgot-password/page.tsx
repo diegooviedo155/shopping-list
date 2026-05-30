@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Mail } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
 import { GuestRoute } from '@/components/auth/guest-route'
+import { useToast } from '@/hooks/use-toast'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -16,7 +17,8 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isEmailSent, setIsEmailSent] = useState(false)
-  const { resetPassword, showError, showSuccess } = useAuth()
+  const { resetPassword } = useAuth()
+  const { showError, showSuccess } = useToast()
   const router = useRouter()
 
   // Se maneja con GuestRoute

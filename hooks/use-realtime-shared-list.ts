@@ -151,12 +151,8 @@ export function useRealtimeSharedList(ownerId: string): UseRealtimeSharedListRet
     const channelName = `shared-list:${ownerId}`
     const channel = supabase
       .channel(channelName)
-      .on('broadcast', { event: 'item:toggled' }, ({ payload }) => {
-        const { itemId, completed, updatedAt } = payload as {
-          itemId: string
-          completed: boolean
-          updatedAt: string
-        }
+      .on('broadcast', { event: 'item:toggled' }, ({ payload }: { payload: { itemId: string; completed: boolean; updatedAt: string } }) => {
+        const { itemId, completed, updatedAt } = payload
         setItems((prev) =>
           prev.map((i) =>
             i.id === itemId
@@ -166,11 +162,11 @@ export function useRealtimeSharedList(ownerId: string): UseRealtimeSharedListRet
         )
         setLastUpdatedAt(new Date())
       })
-      .on('broadcast', { event: 'list:refreshed' }, () => {
+      .on('broadcast', { event: 'list:refreshed' }, (_: unknown) => {
         // El propietario avisa que actualizó la lista (nuevo item, eliminación, etc.)
         fetchItems()
       })
-      .subscribe((status) => {
+      .subscribe((status: string) => {
         setIsConnected(status === 'SUBSCRIBED')
       })
 

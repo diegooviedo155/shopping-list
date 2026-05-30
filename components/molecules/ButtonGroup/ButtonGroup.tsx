@@ -14,7 +14,7 @@ export interface ButtonGroupProps {
   value: string
   onChange: (value: string) => void
   variant?: 'default' | 'outline'
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'lg'
   orientation?: 'horizontal' | 'vertical'
   className?: string
 }
@@ -25,7 +25,7 @@ export const ButtonGroup = React.forwardRef<HTMLDivElement, ButtonGroupProps>(
     value, 
     onChange, 
     variant = 'outline',
-    size = 'sm',
+    size = 'sm' as 'sm' | 'lg',
     orientation = 'horizontal',
     className 
   }, ref) => {

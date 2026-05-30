@@ -2,12 +2,12 @@ export interface Category {
   id: string
   name: string
   slug: string
-  color?: string
-  icon?: string
+  color: string
+  icon: string
   isActive: boolean
   orderIndex: number
-  createdAt: Date
-  updatedAt: Date
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 export interface CreateCategoryData {

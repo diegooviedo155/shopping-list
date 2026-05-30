@@ -34,7 +34,7 @@ export function LogoutButton() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="text-white hover:bg-gray-800">
           <User className="w-4 h-4 mr-2" />
-          {user.name}
+          {user.user_metadata?.name || user.email?.split('@')[0] || 'Usuario'}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">

@@ -10,5 +10,7 @@ export * from './organisms'
 // Template Components
 export * from './templates'
 
-// Feature Components
-export * from './features'
+// Feature Components exported individually
+export { HomePage } from './features/home/HomePage'
+export { HomePageContent } from './features/home/HomePageContent'
+export { ShoppingListManager } from './features/shopping-list/ShoppingListManager'

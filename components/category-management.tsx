@@ -277,7 +277,7 @@ export function CategoryManagement() {
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-medium text-foreground">Items:</span>
                     <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-                      {category._count?.items || 0}
+                      {(category as any)._count?.items || 0}
                     </Badge>
                   </div>
 

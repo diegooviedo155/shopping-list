@@ -7,7 +7,7 @@ import { Button, CategoryCardSkeleton } from '../../atoms'
 import { CategoryCard } from '../../organisms'
 import { SidebarLayout } from '../../sidebar-layout'
 import { ProtectedRoute } from '../../auth/protected-route'
-import { useHybridShoppingSimple as useHybridShopping } from '../../../hooks/use-hybrid-shopping-simple'
+import { useUnifiedShopping as useHybridShopping } from '../../../hooks/use-unified-shopping'
 import { useToast } from '../../../hooks/use-toast'
 import { useAuth } from '../../auth/auth-provider'
 import { LoadingSpinner as LoadingSpinnerOld } from '@/components/loading-states'
@@ -26,18 +26,15 @@ const ADMIN_EMAIL = "diegooviedo155@gmail.com"
 
 export function HomePage() {
       const router = useRouter()
-      const { 
-        items, 
-        categories, 
-        loading, 
-        error, 
-        itemsByCategory, 
-        addItem, 
-        refetch, 
+      const {
+        items,
+        categories,
+        loading,
+        error,
+        itemsByCategory,
+        addItem,
+        refetch,
         clearError,
-        activeSharedList,
-        sharedListItems,
-        sharedListLoading
       } = useHybridShopping()
       const { showError, showSuccess } = useToast()
       const [isHydrated, setIsHydrated] = useState(false)
@@ -93,28 +90,6 @@ export function HomePage() {
         <ErrorHandler error={error} onClearError={clearError} />
         <SidebarLayout>
         <div>
-          {/* Indicador de Lista Compartida */}
-          {activeSharedList && (
-            <motion.div
-              className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <div>
-                  <h3 className="font-semibold text-blue-900 dark:text-blue-100">
-                    Lista Compartida: {activeSharedList.name}
-                  </h3>
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
-                    {activeSharedList.description || 'Colaborando en tiempo real'}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
           {/* Categories Grid */}
           <div>
             <motion.div

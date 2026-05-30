@@ -301,11 +301,7 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
     : items.filter(item => item.completed).length
 
   return (
-    <SidebarLayout 
-      breadcrumbs={[
-        { label: "Inicio", href: "/" },
-        { label: "Categoría" }
-      ]}
+    <SidebarLayout
       title={categoryName}
       showBackButton
       onBack={onBack}

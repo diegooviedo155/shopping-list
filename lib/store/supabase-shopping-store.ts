@@ -13,28 +13,28 @@ interface SupabaseShoppingStore {
   isLoading: boolean
   error: string | null
   searchQuery: string
-         activeTab: 'este-mes' | 'proximo-mes'
+         activeTab: 'este_mes' | 'proximo_mes'
 
   // Actions
   fetchItems: () => Promise<void>
   fetchCategories: () => Promise<void>
-         addItem: (name: string, categoryId: string, status: 'este-mes' | 'proximo-mes') => Promise<void>
+         addItem: (name: string, categoryId: string, status: 'este_mes' | 'proximo_mes') => Promise<void>
   updateItem: (id: string, updates: Partial<ShoppingItem>) => Promise<void>
   deleteItem: (id: string) => Promise<void>
   toggleItemCompleted: (id: string) => Promise<void>
-         moveItemToStatus: (id: string, newStatus: 'este-mes' | 'proximo-mes') => Promise<void>
+         moveItemToStatus: (id: string, newStatus: 'este_mes' | 'proximo_mes') => Promise<void>
   reorderItems: (items: ShoppingItem[]) => Promise<void>
   updateItemName: (id: string, name: string) => Promise<void>
   setSearchQuery: (query: string) => void
   clearSearch: () => void
-         setActiveTab: (tab: 'este-mes' | 'proximo-mes') => void
+         setActiveTab: (tab: 'este_mes' | 'proximo_mes') => void
   forceInitialize: () => Promise<void>
   clearData: () => void
 
   // Getters
-         getItemsByStatus: (status: 'este-mes' | 'proximo-mes') => ShoppingItem[]
+         getItemsByStatus: (status: 'este_mes' | 'proximo_mes') => ShoppingItem[]
   getItemsByCategory: (categoryId: string) => ShoppingItem[]
-         getItemsByStatusAndSearch: (status: 'este-mes' | 'proximo-mes') => ShoppingItem[]
+         getItemsByStatusAndSearch: (status: 'este_mes' | 'proximo_mes') => ShoppingItem[]
   getItemsByCategoryAndSearch: (categoryId: string) => ShoppingItem[]
   getCategoryStats: (categoryId: string) => {
     total: number
@@ -58,7 +58,7 @@ export const useSupabaseShoppingStore = create<SupabaseShoppingStore>()(
       isLoading: false,
       error: null,
       searchQuery: '',
-      activeTab: 'este-mes',
+      activeTab: 'este_mes',
 
       // Actions
       fetchItems: async () => {
@@ -111,7 +111,7 @@ export const useSupabaseShoppingStore = create<SupabaseShoppingStore>()(
         }
       },
 
-      addItem: async (name: string, categoryId: string, status: 'este-mes' | 'proximo-mes') => {
+      addItem: async (name: string, categoryId: string, status: 'este_mes' | 'proximo_mes') => {
         try {
           const { data: { user } } = await supabase.auth.getUser()
           if (!user) throw new Error('User not authenticated')
@@ -207,7 +207,7 @@ export const useSupabaseShoppingStore = create<SupabaseShoppingStore>()(
         }
       },
 
-      moveItemToStatus: async (id: string, newStatus: 'este-mes' | 'proximo-mes') => {
+      moveItemToStatus: async (id: string, newStatus: 'este_mes' | 'proximo_mes') => {
         try {
           await get().updateItem(id, { status: newStatus })
         } catch (error) {
@@ -256,7 +256,7 @@ export const useSupabaseShoppingStore = create<SupabaseShoppingStore>()(
         set({ searchQuery: '' })
       },
 
-      setActiveTab: (tab: 'este-mes' | 'proximo-mes') => {
+      setActiveTab: (tab: 'este_mes' | 'proximo_mes') => {
         set({ activeTab: tab })
       },
 
@@ -273,12 +273,12 @@ export const useSupabaseShoppingStore = create<SupabaseShoppingStore>()(
           categories: [],
           error: null,
           searchQuery: '',
-          activeTab: 'este-mes'
+          activeTab: 'este_mes'
         })
       },
 
       // Getters
-      getItemsByStatus: (status: 'este-mes' | 'proximo-mes') => {
+      getItemsByStatus: (status: 'este_mes' | 'proximo_mes') => {
         return get().items.filter(item => item.status === status)
       },
 
@@ -286,7 +286,7 @@ export const useSupabaseShoppingStore = create<SupabaseShoppingStore>()(
         return get().items.filter(item => item.category_id === categoryId)
       },
 
-      getItemsByStatusAndSearch: (status: 'este-mes' | 'proximo-mes') => {
+      getItemsByStatusAndSearch: (status: 'este_mes' | 'proximo_mes') => {
         const { searchQuery } = get()
         return get().items.filter(item => 
           item.status === status && 

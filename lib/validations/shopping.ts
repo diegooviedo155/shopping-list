@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { CATEGORIES } from '@/lib/constants/categories'
 import { ITEM_STATUS } from '@/lib/constants/item-status'
 
 // Esquema para crear un item

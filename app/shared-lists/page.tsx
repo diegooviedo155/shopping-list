@@ -85,8 +85,8 @@ export default function SharedListsPage() {
           }))
           
           // Eliminar duplicados basándose en el ID único
-          const uniqueRequests = transformedRequests.filter((req, index, self) =>
-            index === self.findIndex((r) => r.id === req.id)
+          const uniqueRequests = transformedRequests.filter((req: AccessRequest, index: number, self: AccessRequest[]) =>
+            index === self.findIndex((r: AccessRequest) => r.id === req.id)
           )
           
           setAccessRequests(uniqueRequests)

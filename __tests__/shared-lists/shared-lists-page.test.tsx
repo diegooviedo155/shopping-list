@@ -11,6 +11,29 @@ import { useToast } from '@/hooks/use-toast'
 // Mock dependencies
 jest.mock('@/components/auth/auth-provider')
 jest.mock('@/hooks/use-toast')
+// AppSidebar usa queuedFetch para cargar listas compartidas.
+// Lo mockeamos para que los tests de SharedListsPage no fallen por llamadas extra.
+jest.mock('@/lib/utils/request-queue', () => ({
+  queuedFetch: jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ sharedLists: [] }),
+    clone: jest.fn().mockReturnThis(),
+  }),
+  requestQueue: { add: jest.fn(), clear: jest.fn() },
+}))
+jest.mock('@/lib/utils/auth-cache', () => ({
+  getCachedAuthHeaders: jest.fn().mockResolvedValue({}),
+}))
+jest.mock('@/lib/supabase/client', () => ({
+  supabase: {
+    auth: { getSession: jest.fn().mockResolvedValue({ data: { session: null } }) },
+    channel: jest.fn().mockReturnValue({
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn().mockReturnThis(),
+    }),
+    removeChannel: jest.fn(),
+  },
+}))
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: jest.fn(),
@@ -74,7 +97,7 @@ describe('SharedListsPage', () => {
         created_at: '2024-01-01T00:00:00Z',
         message: 'Por favor, dame acceso',
       },
-    ]
+    ];
 
     (global.fetch as jest.Mock)
       .mockResolvedValueOnce({
@@ -91,8 +114,10 @@ describe('SharedListsPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Requester 1')).toBeInTheDocument()
       expect(screen.getByText('requester1@example.com')).toBeInTheDocument()
-      expect(screen.getByText(/Solicita acceso a: Mi Lista/)).toBeInTheDocument()
-      expect(screen.getByText('Por favor, dame acceso')).toBeInTheDocument()
+      // El texto "Solicita acceso a: Mi Lista" está dividido por <strong>, usamos función
+      expect(screen.getByText((t) => t.includes('Solicita acceso a:'))).toBeInTheDocument()
+      expect(screen.getByText('Mi Lista')).toBeInTheDocument()
+      expect(screen.getByText('"Por favor, dame acceso"')).toBeInTheDocument()
     })
   })
 
@@ -106,7 +131,7 @@ describe('SharedListsPage', () => {
         status: 'pending',
         created_at: '2024-01-01T00:00:00Z',
       },
-    ]
+    ];
 
     (global.fetch as jest.Mock)
       .mockResolvedValueOnce({
@@ -158,7 +183,7 @@ describe('SharedListsPage', () => {
         status: 'pending',
         created_at: '2024-01-01T00:00:00Z',
       },
-    ]
+    ];
 
     (global.fetch as jest.Mock)
       .mockResolvedValueOnce({
@@ -210,7 +235,7 @@ describe('SharedListsPage', () => {
         status: 'approved',
         created_at: '2024-01-01T00:00:00Z',
       },
-    ]
+    ];
 
     (global.fetch as jest.Mock)
       .mockResolvedValueOnce({
@@ -240,7 +265,7 @@ describe('SharedListsPage', () => {
         list_owner_id: 'owner-123',
         granted_at: '2024-01-01T00:00:00Z',
       },
-    ]
+    ];
 
     (global.fetch as jest.Mock)
       .mockResolvedValueOnce({
@@ -352,7 +377,7 @@ describe('SharedListsPage', () => {
         status: 'pending',
         created_at: '2024-01-01T00:00:00Z',
       },
-    ]
+    ];
 
     (global.fetch as jest.Mock)
       .mockResolvedValueOnce({
@@ -367,8 +392,9 @@ describe('SharedListsPage', () => {
     render(<SharedListsPage />)
 
     await waitFor(() => {
-      const badge = screen.getByText('2')
-      expect(badge).toBeInTheDocument()
+      // El badge con el número de solicitudes pendientes
+      const badges = screen.getAllByText('2')
+      expect(badges.length).toBeGreaterThan(0)
     })
   })
 

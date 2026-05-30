@@ -12,5 +12,4 @@ export * from './templates'
 
 // Feature Components exported individually
 export { HomePage } from './features/home/HomePage'
-export { HomePageContent } from './features/home/HomePageContent'
 export { ShoppingListManager } from './features/shopping-list/ShoppingListManager'

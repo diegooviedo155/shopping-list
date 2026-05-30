@@ -488,10 +488,12 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
                 {filteredItems.length > 0 && (
                   <div className="flex items-center p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2">
-                      <Checkbox
+                      <input
+                        type="checkbox"
                         id="select-all"
                         checked={selectedItems.size === filteredItems.length && filteredItems.length > 0}
-                        onCheckedChange={handleSelectAll}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="w-4 h-4 accent-primary"
                       />
                       <label htmlFor="select-all" className="text-sm font-medium">
                         Seleccionar todos ({filteredItems.length})

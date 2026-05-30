@@ -261,7 +261,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           // Limpiar localStorage
           localStorage.removeItem('unified-shopping-store')
-          localStorage.removeItem('supabase-shopping-store')
           
           // Limpiar todos los tokens de Supabase
           const keys = Object.keys(localStorage)

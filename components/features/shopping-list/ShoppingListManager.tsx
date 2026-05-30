@@ -13,11 +13,13 @@ import { useToast } from '../../../hooks/use-toast'
 import { LoadingSpinner } from '@/components/loading-states'
 import { ErrorBoundary, ShoppingListErrorFallback } from '@/components/error-boundary'
 import { cn } from '@/lib/utils'
-import { Calendar, CalendarDays, Trash2, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react'
+import { Calendar, CalendarDays, Trash2, ArrowRight, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react'
 import { ITEM_STATUS } from '@/lib/constants/item-status'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { getCategoryColor, getIconEmoji } from '@/lib/constants/categories'
+import { usePullToRefresh } from '@/hooks/use-pull-to-refresh'
+import { PullToRefreshIndicator } from '@/components/pull-to-refresh-indicator'
+import { haptics } from '@/lib/utils/haptics'
 
 interface ShoppingListManagerProps {
   onBack: () => void
@@ -94,8 +96,15 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
 
 
   const { showSuccess, showError } = useToast()
-  // Removed StaggerContainer and StaggerItem to prevent continuous animations
-  
+
+  // Pull-to-refresh
+  const { pullDistance, isRefreshing, wrapperProps: pullProps } = usePullToRefresh({
+    onRefresh: async () => {
+      haptics.light()
+      await refetch(true)
+    },
+  })
+
   // Estados para filtros y selección
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   
@@ -212,9 +221,11 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
   }
 
   const handleToggleCompleted = useCallback(async (id: string) => {
+    haptics.light()
     try {
       await toggleItemCompleted(id)
     } catch (error) {
+      haptics.error()
       showError('Error', 'No se pudo actualizar el producto')
     }
   }, [toggleItemCompleted, showError])
@@ -228,6 +239,7 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
   // Confirmar eliminación de items seleccionados
   const handleConfirmDelete = useCallback(async () => {
     if (selectedItems.size === 0) return
+    haptics.medium()
 
     try {
       const itemsToDelete = Array.from(selectedItems)
@@ -413,7 +425,10 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
         showBackButton
         onBack={onBack}
       >
-        <div className="space-y-6">
+        <div className="space-y-6" {...pullProps}>
+          {/* Pull-to-refresh indicator */}
+          <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} />
+
           {/* Month Tabs */}
           <div className="mb-6">
               <ButtonGroup
@@ -617,18 +632,55 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
                                     pressedItemId === item.id && "scale-95 shadow-inner bg-accent/30 border-accent"
                                   )}
                                 >
-                                  {/* Checkbox for selection */}
-                                  <Checkbox
-                                    id={`item-${item.id}`}
+                                  {/* Checkbox de selección múltiple */}
+                                  <input
+                                    type="checkbox"
                                     checked={isSelected}
-                                    onCheckedChange={(checked) => handleItemSelect(item.id, checked as boolean)}
+                                    onChange={(e) => handleItemSelect(item.id, e.target.checked)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="w-4 h-4 accent-primary shrink-0"
                                   />
+
+                                  {/* Botón de tilde animado */}
+                                  <motion.button
+                                    type="button"
+                                    aria-label={item.completed ? 'Marcar como pendiente' : 'Marcar como completado'}
+                                    onClick={(e) => { e.stopPropagation(); handleToggleCompleted(item.id) }}
+                                    className="shrink-0 focus:outline-none"
+                                    whileTap={{ scale: 0.8 }}
+                                    transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                                  >
+                                    <motion.div
+                                      className={cn(
+                                        'w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors duration-200',
+                                        item.completed
+                                          ? 'border-green-500 bg-green-500'
+                                          : 'border-muted-foreground/40 bg-transparent'
+                                      )}
+                                      animate={item.completed ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+                                      transition={{ duration: 0.25 }}
+                                    >
+                                      <AnimatePresence>
+                                        {item.completed && (
+                                          <motion.div
+                                            key="check"
+                                            initial={{ scale: 0, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            exit={{ scale: 0, opacity: 0 }}
+                                            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                                          >
+                                            <CheckCircle2 className="w-4 h-4 text-white" strokeWidth={3} />
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </motion.div>
+                                  </motion.button>
 
                                   {/* Item content */}
                                   <div className="flex-1 flex items-center gap-3 capitalize">
                                     <div className={cn(
-                                      "flex-1 text-sm font-medium ",
-                                      item.completed && "line-through text-muted-foreground opacity-60"
+                                      'flex-1 text-sm font-medium transition-all duration-300',
+                                      item.completed && 'line-through text-muted-foreground opacity-50'
                                     )}>
                                       {item.name}
                                     </div>

@@ -9,6 +9,7 @@ import { queuedFetch } from "@/lib/utils/request-queue";
 import { getCachedAuthHeaders } from "@/lib/utils/auth-cache";
 import { pendingOperationsQueue } from "@/lib/utils/pending-operations";
 import { isNetworkError } from "@/lib/utils/is-network-error";
+import { withServerRetry } from "@/lib/utils/retry";
 
 // Tipos simplificados para evitar problemas con domain entities
 interface SimpleShoppingItem {
@@ -376,22 +377,15 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
         set((s) => ({ items: [...s.items, tempItem] }));
 
         try {
-          const headers = await getAuthHeaders();
-          const response = await queuedFetch(
-            API_BASE,
-            {
-              method: "POST",
-              headers,
-              body: JSON.stringify({
-                name: name.trim(),
-                category_id: categoryId,
-                status,
-              }),
-            },
-            0
-          );
-
-          const newItem = await response.json();
+          const newItem = await withServerRetry(async () => {
+            const headers = await getAuthHeaders();
+            const response = await queuedFetch(
+              API_BASE,
+              { method: "POST", headers, body: JSON.stringify({ name: name.trim(), category_id: categoryId, status }) },
+              0
+            );
+            return response.json();
+          });
 
           const formattedItem: SimpleShoppingItem = {
             id: String(newItem.id),
@@ -558,18 +552,12 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
         }));
 
         try {
-          const headers = await getAuthHeaders();
-          await queuedFetch(
-            `${API_BASE}/${id}`,
-            {
-              method: "DELETE",
-              headers,
-            },
-            0
-          );
+          await withServerRetry(async () => {
+            const headers = await getAuthHeaders();
+            return queuedFetch(`${API_BASE}/${id}`, { method: "DELETE", headers }, 0);
+          });
         } catch (error) {
           if (isNetworkError(error)) {
-            // Sin conexión: mantener eliminado en UI y encolar para sync posterior
             pendingOperationsQueue.add({
               itemId: id,
               type: 'delete',
@@ -606,20 +594,16 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
         }));
 
         try {
-          const headers = await getAuthHeaders();
-          const response = await queuedFetch(
-            `${API_BASE}/${id}`,
-            {
-              method: "PATCH",
-              headers,
-              body: JSON.stringify({ completed: newCompleted }),
-            },
-            0
-          );
+          const updated = await withServerRetry(async () => {
+            const headers = await getAuthHeaders();
+            const response = await queuedFetch(
+              `${API_BASE}/${id}`,
+              { method: "PATCH", headers, body: JSON.stringify({ completed: newCompleted }) },
+              0
+            );
+            return response.json();
+          });
 
-          const updated = await response.json();
-
-          // Confirmar con datos del servidor
           set((state) => ({
             items: state.items.map((i) =>
               i.id === id ? { ...i, completed: Boolean(updated.completed), updatedAt: new Date() } : i
@@ -627,15 +611,13 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
           }));
         } catch (error) {
           if (isNetworkError(error)) {
-            // Sin conexión: mantener el estado optimista y encolar para sync posterior
             pendingOperationsQueue.add({
               itemId: id,
               type: 'toggle',
               payload: { completed: newCompleted },
             });
-            return; // No hacer rollback, no propagar error
+            return;
           }
-          // Error de servidor: rollback
           set((state) => ({
             items: state.items.map((i) =>
               i.id === id ? { ...i, completed: item.completed, updatedAt: new Date() } : i

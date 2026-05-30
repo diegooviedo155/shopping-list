@@ -5,13 +5,34 @@
  * - La UI mantiene el estado optimista (NO hace rollback)
  * - La operación se encola en pendingOperationsQueue
  *
- * Cuando hay un error de servidor (4xx/5xx):
- * - La UI revierte al estado anterior (rollback)
+ * Cuando hay un error de servidor (5xx):
+ * - El store reintenta una vez (withServerRetry) antes de rendirse
+ * - Si ambos intentos fallan, la UI revierte al estado anterior (rollback)
  * - No se encola nada
+ *
+ * Nota: los tests de errores de servidor usan jest.useFakeTimers() para evitar
+ * que el delay de 800ms del retry ralentice la suite.
  */
 
 jest.mock('@/lib/utils/request-queue', () => ({
   queuedFetch: jest.fn(),
+}))
+
+// Eliminar el delay de 800ms del retry para que los tests no sean lentos.
+// La lógica de retry (reintentar 5xx, no reintentar red/4xx) se prueba
+// en __tests__/utils/retry.test.ts.
+jest.mock('@/lib/utils/retry', () => ({
+  withServerRetry: async <T>(fn: () => Promise<T>): Promise<T> => {
+    try {
+      return await fn()
+    } catch (error) {
+      const msg = (error instanceof Error ? error.message : '').toLowerCase()
+      const isNetwork = msg.includes('failed to fetch') || msg.includes('timeout') || msg.includes('aborterror')
+      const isServer = msg.includes('http 5') || msg.includes('500') || msg.includes('50')
+      if (isNetwork || !isServer) throw error
+      return fn() // retry inmediato (sin delay)
+    }
+  },
 }))
 
 jest.mock('@/lib/utils/auth-cache', () => ({
@@ -52,6 +73,8 @@ function makeItem(id = 'item-1', completed = false) {
 }
 
 const NETWORK_ERROR = new Error('Failed to fetch')
+// Para errores de servidor: el store usa withServerRetry (reintenta 1 vez).
+// Hay que mockear AMBOS intentos para que el rollback se produzca.
 const SERVER_ERROR = new Error('HTTP 500: Internal Server Error')
 
 beforeEach(() => {
@@ -108,19 +131,17 @@ describe('toggleItemCompleted — error de red (offline)', () => {
 })
 
 describe('toggleItemCompleted — error de servidor (rollback)', () => {
-  it('revierte la UI y no encola nada', async () => {
+  it('reintenta una vez y luego revierte la UI sin encolar nada', async () => {
     const item = makeItem('item-1', false)
     useUnifiedShoppingStore.setState({ items: [item] })
 
-    mockFetch.mockRejectedValueOnce(SERVER_ERROR)
+    mockFetch.mockRejectedValueOnce(SERVER_ERROR).mockRejectedValueOnce(SERVER_ERROR)
 
     await expect(
       useUnifiedShoppingStore.getState().toggleItemCompleted('item-1')
     ).rejects.toThrow()
 
-    // La UI revierte al estado original
     expect(useUnifiedShoppingStore.getState().items[0].completed).toBe(false)
-    // Nada en la cola
     expect(pendingOperationsQueue.count()).toBe(0)
   })
 })
@@ -159,11 +180,11 @@ describe('deleteItem — error de red (offline)', () => {
 })
 
 describe('deleteItem — error de servidor (rollback)', () => {
-  it('restaura el item en la UI y no encola nada', async () => {
+  it('reintenta una vez y luego restaura el item sin encolar nada', async () => {
     const item = makeItem()
     useUnifiedShoppingStore.setState({ items: [item] })
 
-    mockFetch.mockRejectedValueOnce(SERVER_ERROR)
+    mockFetch.mockRejectedValueOnce(SERVER_ERROR).mockRejectedValueOnce(SERVER_ERROR)
 
     await expect(
       useUnifiedShoppingStore.getState().deleteItem('item-1')
@@ -212,11 +233,11 @@ describe('addItem — error de red (offline)', () => {
 })
 
 describe('addItem — error de servidor (rollback)', () => {
-  it('elimina el item temporal y no encola nada', async () => {
+  it('reintenta una vez y luego elimina el item temporal sin encolar nada', async () => {
     const category = { id: 'cat-1', slug: 'supermercado' }
     useUnifiedShoppingStore.setState({ items: [], categories: [category] })
 
-    mockFetch.mockRejectedValueOnce(SERVER_ERROR)
+    mockFetch.mockRejectedValueOnce(SERVER_ERROR).mockRejectedValueOnce(SERVER_ERROR)
 
     await expect(
       useUnifiedShoppingStore.getState().addItem('Leche', 'supermercado', 'este_mes')

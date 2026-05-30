@@ -10,6 +10,9 @@ import { cn } from '@/lib/utils'
 import { useRealtimeSharedList, type SharedListItem } from '@/hooks/use-realtime-shared-list'
 import { useToast } from '@/hooks/use-toast'
 import { LoadingSpinner } from '@/components/loading-spinner'
+import { usePullToRefresh } from '@/hooks/use-pull-to-refresh'
+import { PullToRefreshIndicator } from '@/components/pull-to-refresh-indicator'
+import { haptics } from '@/lib/utils/haptics'
 
 interface SharedListViewProps {
   ownerId: string
@@ -36,6 +39,13 @@ export function SharedListView({ ownerId, ownerName }: SharedListViewProps) {
   const { items, loading, error, isConnected, toggleItem, refetch, lastUpdatedAt } =
     useRealtimeSharedList(ownerId)
   const { showError } = useToast()
+
+  const { pullDistance, isRefreshing, wrapperProps: pullProps } = usePullToRefresh({
+    onRefresh: async () => {
+      haptics.light()
+      await refetch()
+    },
+  })
 
   // Agrupar items por categoría
   const categoryGroups = useMemo<CategoryGroup[]>(() => {
@@ -71,9 +81,11 @@ export function SharedListView({ ownerId, ownerName }: SharedListViewProps) {
   const completedCount = items.filter((i) => i.completed).length
 
   const handleToggle = async (itemId: string) => {
+    haptics.light()
     try {
       await toggleItem(itemId)
     } catch {
+      haptics.error()
       showError('Error', 'No se pudo actualizar el item. Inténtalo de nuevo.')
     }
   }
@@ -93,7 +105,10 @@ export function SharedListView({ ownerId, ownerName }: SharedListViewProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" {...pullProps}>
+      {/* Pull-to-refresh indicator */}
+      <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} />
+
       {/* Header: progreso + estado de conexión */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">

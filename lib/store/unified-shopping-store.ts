@@ -38,7 +38,7 @@ interface UnifiedShoppingState {
   lastFetch: number | null;
 
   // Estado de loading para operaciones específicas
-  movingItems: Set<string>;
+  movingItems: string[];
 
   // Acciones
   initialize: () => Promise<void>;
@@ -109,7 +109,7 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
       searchQuery: "",
       hasInitialized: false,
       lastFetch: null,
-      movingItems: new Set<string>(),
+      movingItems: [] as string[],
 
       // Verificar si debe hacer fetch
       shouldFetch: () => {
@@ -188,7 +188,7 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
           isRefreshing: false,
           searchQuery: "",
           selectedCategory: "supermercado" as Category,
-          movingItems: new Set(),
+          movingItems: [],
         });
       },
 
@@ -208,18 +208,6 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
           error: null,
           isRefreshing: state.items.length > 0,
         });
-
-        // Agregar timeout para evitar que se quede colgado
-        const timeoutId = setTimeout(() => {
-          const currentState = get();
-          if (currentState.loading) {
-            set({
-              loading: false,
-              error: "Timeout: La petición tardó demasiado",
-              isRefreshing: false,
-            });
-          }
-        }, 30000); // 30 segundos de timeout
 
         try {
           const headers = await getAuthHeaders();
@@ -288,7 +276,6 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
             };
           });
 
-          if (timeoutId) clearTimeout(timeoutId);
           set({
             items: formattedItems,
             loading: false,
@@ -296,7 +283,6 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
             isRefreshing: false,
           });
         } catch (error) {
-          if (timeoutId) clearTimeout(timeoutId);
           const errorMessage =
             error instanceof Error ? error.message : "Error desconocido";
           console.error("fetchItems: Error:", errorMessage);
@@ -365,16 +351,29 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
         }
       },
 
-      // Agregar item
+      // Agregar item — actualización optimista: aparece en la UI al instante con ID temporal
       addItem: async (name: string, category: string, status: string) => {
-        try {
-          // Buscar el ID de la categoría por su slug
-          const state = get();
-          const categoryObj = state.categories.find(
-            (cat) => cat.slug === category
-          );
-          const categoryId = categoryObj?.id || category; // Fallback al slug si no se encuentra
+        const state = get();
+        const categoryObj = state.categories.find((cat) => cat.slug === category);
+        const categoryId = categoryObj?.id || category;
 
+        // Crear item temporal con ID local
+        const tempId = `temp-${crypto.randomUUID()}`;
+        const tempItem: SimpleShoppingItem = {
+          id: tempId,
+          name: name.trim(),
+          category,
+          status,
+          completed: false,
+          orderIndex: state.items.length,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        // Agregar a la UI inmediatamente
+        set((s) => ({ items: [...s.items, tempItem] }));
+
+        try {
           const headers = await getAuthHeaders();
           const response = await queuedFetch(
             API_BASE,
@@ -384,77 +383,45 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
               body: JSON.stringify({
                 name: name.trim(),
                 category_id: categoryId,
-                status: status,
+                status,
               }),
             },
             0
           );
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error("addItem: Error response:", errorText);
-
-            // Manejar errores específicos
-            if (response.status === 401) {
-              throw new Error(
-                "Sesión expirada. Por favor, inicia sesión nuevamente."
-              );
-            } else if (response.status === 403) {
-              throw new Error("No tienes permisos para agregar items.");
-            } else if (response.status >= 500) {
-              throw new Error(
-                "Error del servidor. Intenta nuevamente en unos minutos."
-              );
-            } else {
-              throw new Error(
-                `Error ${response.status}: ${response.statusText}`
-              );
-            }
-          }
 
           const newItem = await response.json();
 
           const formattedItem: SimpleShoppingItem = {
             id: String(newItem.id),
             name: String(newItem.name),
-            category: String(
-              newItem.categories?.slug || newItem.category?.slug || category
-            ),
+            category: String(newItem.categories?.slug || newItem.category?.slug || category),
             status: String(newItem.status),
             completed: Boolean(newItem.completed),
-            orderIndex: Number(newItem.orderIndex || 0),
-            createdAt: new Date(newItem.createdAt || new Date()),
-            updatedAt: new Date(newItem.updatedAt || new Date()),
+            orderIndex: Number(newItem.order_index || newItem.orderIndex || 0),
+            createdAt: new Date(newItem.created_at || newItem.createdAt || new Date()),
+            updatedAt: new Date(newItem.updated_at || newItem.updatedAt || new Date()),
           };
 
-          set((state) => ({
-            items: [...state.items, formattedItem],
+          // Reemplazar el item temporal por el definitivo del servidor
+          set((s) => ({
+            items: s.items.map((item) => (item.id === tempId ? formattedItem : item)),
           }));
         } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : "Error desconocido";
+          // Rollback: eliminar el item temporal
+          set((s) => ({ items: s.items.filter((item) => item.id !== tempId) }));
+
+          const errorMessage = error instanceof Error ? error.message : "Error desconocido";
           console.error("addItem: Error:", errorMessage);
 
-          // Si es un error de autenticación, limpiar datos pero NO redirigir automáticamente
-          // Dejar que los componentes manejen la redirección para evitar perder logs
           if (
             errorMessage.includes("Sesión expirada") ||
             errorMessage.includes("Usuario no autenticado")
           ) {
-            set({
-              items: [],
-              categories: [],
-              error: errorMessage,
-              hasInitialized: false,
-            });
-
-            // NO redirigir automáticamente - dejar que el componente maneje esto
-            console.warn(
-              "Error de autenticación detectado. El componente debe manejar la redirección."
-            );
+            set({ items: [], categories: [], error: errorMessage, hasInitialized: false });
           } else {
             set({ error: errorMessage });
           }
+          throw error;
         }
       },
 
@@ -567,11 +534,19 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
         }
       },
 
-      // Eliminar item
+      // Eliminar item — actualización optimista: elimina de la UI al instante, sincroniza en background
       deleteItem: async (id: string) => {
+        const itemToDelete = get().items.find((item) => item.id === id);
+        if (!itemToDelete) return;
+
+        // Eliminar de la UI inmediatamente
+        set((state) => ({
+          items: state.items.filter((item) => item.id !== id),
+        }));
+
         try {
           const headers = await getAuthHeaders();
-          const response = await queuedFetch(
+          await queuedFetch(
             `${API_BASE}/${id}`,
             {
               method: "DELETE",
@@ -579,34 +554,98 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
             },
             0
           );
-
-          if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-          }
-
-          set((state) => ({
-            items: state.items.filter((item) => item.id !== id),
-          }));
         } catch (error) {
+          // Rollback: restaurar el item eliminado en su posición original
+          set((state) => {
+            const restored = [...state.items, itemToDelete].sort(
+              (a, b) => a.orderIndex - b.orderIndex
+            );
+            return { items: restored };
+          });
           const errorMessage =
             error instanceof Error ? error.message : "Error desconocido";
           set({ error: errorMessage });
+          throw error;
         }
       },
 
-      // Toggle completado
+      // Toggle completado — actualización optimista: cambia la UI al instante, sincroniza en background
       toggleItemCompleted: async (id: string) => {
-        const state = get();
-        const item = state.items.find((item) => item.id === id);
+        const item = get().items.find((i) => i.id === id);
         if (!item) return;
 
         const newCompleted = !item.completed;
-        await state.updateItem(id, { completed: newCompleted });
+
+        // Actualizar UI inmediatamente
+        set((state) => ({
+          items: state.items.map((i) =>
+            i.id === id ? { ...i, completed: newCompleted, updatedAt: new Date() } : i
+          ),
+        }));
+
+        try {
+          const headers = await getAuthHeaders();
+          const response = await queuedFetch(
+            `${API_BASE}/${id}`,
+            {
+              method: "PATCH",
+              headers,
+              body: JSON.stringify({ completed: newCompleted }),
+            },
+            0
+          );
+
+          const updated = await response.json();
+
+          // Confirmar con datos del servidor
+          set((state) => ({
+            items: state.items.map((i) =>
+              i.id === id ? { ...i, completed: Boolean(updated.completed), updatedAt: new Date() } : i
+            ),
+          }));
+        } catch (error) {
+          // Rollback: revertir al estado anterior
+          set((state) => ({
+            items: state.items.map((i) =>
+              i.id === id ? { ...i, completed: item.completed, updatedAt: new Date() } : i
+            ),
+          }));
+          throw error;
+        }
       },
 
-      // Actualizar estado completado directamente (para debounce)
+      // Actualizar estado completado directamente — también optimista
       updateItemCompletedStatus: async (id: string, completed: boolean) => {
-        await get().updateItem(id, { completed });
+        const item = get().items.find((i) => i.id === id);
+        if (!item) return;
+
+        const previousCompleted = item.completed;
+
+        set((state) => ({
+          items: state.items.map((i) =>
+            i.id === id ? { ...i, completed, updatedAt: new Date() } : i
+          ),
+        }));
+
+        try {
+          const headers = await getAuthHeaders();
+          await queuedFetch(
+            `${API_BASE}/${id}`,
+            {
+              method: "PATCH",
+              headers,
+              body: JSON.stringify({ completed }),
+            },
+            0
+          );
+        } catch (error) {
+          set((state) => ({
+            items: state.items.map((i) =>
+              i.id === id ? { ...i, completed: previousCompleted, updatedAt: new Date() } : i
+            ),
+          }));
+          throw error;
+        }
       },
 
       // Batch update para múltiples items (usado en "limpiar tildes")
@@ -630,9 +669,7 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
         if (!currentItem) {
           // Si el item no existe, asegurar que no esté en movingItems
           set((state) => ({
-            movingItems: new Set(
-              [...state.movingItems].filter((itemId) => itemId !== id)
-            ),
+            movingItems: state.movingItems.filter((itemId) => itemId !== id),
           }));
           return;
         }
@@ -641,7 +678,7 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
 
         // Marcar como moviendo
         set((state) => ({
-          movingItems: new Set([...state.movingItems, id]),
+          movingItems: [...state.movingItems, id],
         }));
 
         // Actualización optimista - cambiar inmediatamente en el UI
@@ -653,19 +690,6 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
           );
           return { items: updatedItems };
         });
-
-        // Agregar timeout para limpiar el estado si la petición tarda demasiado
-        const cleanupTimeout = setTimeout(() => {
-          const currentState = get();
-          if (currentState.movingItems.has(id)) {
-            console.warn(`Item ${id} quedó en estado "moviendo" por más de 30 segundos. Limpiando estado.`);
-            set((state) => ({
-              movingItems: new Set(
-                [...state.movingItems].filter((itemId) => itemId !== id)
-              ),
-            }));
-          }
-        }, 30000); // 30 segundos
 
         // Luego hacer la petición a la API
         try {
@@ -711,13 +735,9 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
           // No lanzar el error para evitar que rompa Promise.all
           // Solo loguear el error
         } finally {
-          // Limpiar timeout
-          clearTimeout(cleanupTimeout);
           // Quitar de la lista de moviendo - SIEMPRE, incluso si hay error
           set((state) => ({
-            movingItems: new Set(
-              [...state.movingItems].filter((itemId) => itemId !== id)
-            ),
+            movingItems: state.movingItems.filter((itemId) => itemId !== id),
           }));
         }
       },
@@ -804,15 +824,15 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
 
       // Verificar si un item está siendo movido
       isMovingItem: (id: string) => {
-        return get().movingItems.has(id);
+        return get().movingItems.includes(id);
       },
 
       // Limpiar items que quedaron en estado "moviendo" (limpieza automática)
       cleanupStuckMovingItems: () => {
         const state = get();
-        if (state.movingItems.size > 0) {
-          console.warn(`Limpiando ${state.movingItems.size} item(s) que quedaron en estado "moviendo"`);
-          set({ movingItems: new Set<string>() });
+        if (state.movingItems.length > 0) {
+          console.warn(`Limpiando ${state.movingItems.length} item(s) que quedaron en estado "moviendo"`);
+          set({ movingItems: [] });
         }
       },
 

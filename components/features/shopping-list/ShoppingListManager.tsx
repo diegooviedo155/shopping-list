@@ -71,31 +71,15 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
   // Manejar hidratación
   useEffect(() => {
     let isMounted = true
-    let timeoutId: NodeJS.Timeout
-    
+
     const initializeStore = async () => {
       try {
-        // Forzar inicialización para asegurar que los datos estén actualizados
-        // Agregar timeout más largo para evitar que falle prematuramente
-        const initPromise = forceInitialize()
-        const timeoutPromise = new Promise((_, reject) => {
-          timeoutId = setTimeout(() => reject(new Error('Initialization timeout')), 30000) // 30 segundos
-        })
-        
-        await Promise.race([initPromise, timeoutPromise])
+        await forceInitialize()
       } catch (error) {
         console.error('Error initializing store:', error)
-        // Continuar con la hidratación incluso si hay error
-        // No mostrar error al usuario, solo loguear
       } finally {
-        if (timeoutId) clearTimeout(timeoutId)
-        // Asegurar que siempre se establezca isHydrated después de un tiempo razonable
         if (isMounted) {
-          setTimeout(() => {
-            if (isMounted) {
-              setIsHydrated(true)
-            }
-          }, 100)
+          setIsHydrated(true)
         }
       }
     }
@@ -104,7 +88,6 @@ export function ShoppingListManager({ onBack }: ShoppingListManagerProps) {
     
     return () => {
       isMounted = false
-      if (timeoutId) clearTimeout(timeoutId)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Solo ejecutar una vez al montar

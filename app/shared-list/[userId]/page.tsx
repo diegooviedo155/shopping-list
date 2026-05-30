@@ -5,7 +5,7 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertCircle, CheckCircle } from 'lucide-react'
-import { HomePageContent } from '@/components/features/home/HomePageContent'
+import { SharedListView } from '@/components/shared-lists/shared-list-view'
 import { SidebarLayout } from '@/components/sidebar-layout'
 import { RequestAccessModal } from '@/components/shared-lists/request-access-modal'
 import { useAuth } from '@/components/auth/auth-provider'
@@ -141,7 +141,7 @@ export default function SharedListPage() {
       {checkingAccess ? (
         <LoadingSpinner title="Verificando acceso..." />
       ) : hasAccess ? (
-        <HomePageContent ownerId={userId} isSharedView={true} />
+        <SharedListView ownerId={userId} ownerName={ownerName} />
       ) : requestSent ? (
           <div className="min-h-screen bg-background flex items-center justify-center">
             <Card className="w-full max-w-md">

@@ -7,6 +7,8 @@ import { ITEM_STATUS } from "@/lib/constants/item-status";
 import { supabase } from "@/lib/supabase/client";
 import { queuedFetch } from "@/lib/utils/request-queue";
 import { getCachedAuthHeaders } from "@/lib/utils/auth-cache";
+import { pendingOperationsQueue } from "@/lib/utils/pending-operations";
+import { isNetworkError } from "@/lib/utils/is-network-error";
 
 // Tipos simplificados para evitar problemas con domain entities
 interface SimpleShoppingItem {
@@ -407,7 +409,18 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
             items: s.items.map((item) => (item.id === tempId ? formattedItem : item)),
           }));
         } catch (error) {
-          // Rollback: eliminar el item temporal
+          if (isNetworkError(error)) {
+            // Sin conexión: mantener item temporal en UI y encolar
+            // El tempId se necesita para eliminarlo cuando se haga el sync real
+            pendingOperationsQueue.add({
+              itemId: tempId,
+              type: 'add',
+              payload: { name: name.trim(), category, status, tempId },
+            });
+            return;
+          }
+
+          // Error de servidor: rollback eliminando el item temporal
           set((s) => ({ items: s.items.filter((item) => item.id !== tempId) }));
 
           const errorMessage = error instanceof Error ? error.message : "Error desconocido";
@@ -555,7 +568,16 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
             0
           );
         } catch (error) {
-          // Rollback: restaurar el item eliminado en su posición original
+          if (isNetworkError(error)) {
+            // Sin conexión: mantener eliminado en UI y encolar para sync posterior
+            pendingOperationsQueue.add({
+              itemId: id,
+              type: 'delete',
+              payload: {},
+            });
+            return;
+          }
+          // Error de servidor: restaurar el item en su posición original
           set((state) => {
             const restored = [...state.items, itemToDelete].sort(
               (a, b) => a.orderIndex - b.orderIndex
@@ -604,7 +626,16 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
             ),
           }));
         } catch (error) {
-          // Rollback: revertir al estado anterior
+          if (isNetworkError(error)) {
+            // Sin conexión: mantener el estado optimista y encolar para sync posterior
+            pendingOperationsQueue.add({
+              itemId: id,
+              type: 'toggle',
+              payload: { completed: newCompleted },
+            });
+            return; // No hacer rollback, no propagar error
+          }
+          // Error de servidor: rollback
           set((state) => ({
             items: state.items.map((i) =>
               i.id === id ? { ...i, completed: item.completed, updatedAt: new Date() } : i
@@ -639,6 +670,14 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
             0
           );
         } catch (error) {
+          if (isNetworkError(error)) {
+            pendingOperationsQueue.add({
+              itemId: id,
+              type: 'toggle',
+              payload: { completed },
+            });
+            return;
+          }
           set((state) => ({
             items: state.items.map((i) =>
               i.id === id ? { ...i, completed: previousCompleted, updatedAt: new Date() } : i
@@ -723,17 +762,24 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
             ),
           }));
         } catch (error) {
-          console.error(`Error moving item ${id}:`, error);
-          // Si falla, revertir el cambio
-          set((state) => ({
-            items: state.items.map((item) =>
-              item.id === id
-                ? { ...item, status: oldStatus, updatedAt: new Date() }
-                : item
-            ),
-          }));
-          // No lanzar el error para evitar que rompa Promise.all
-          // Solo loguear el error
+          if (isNetworkError(error)) {
+            // Sin conexión: mantener el estado optimista y encolar
+            pendingOperationsQueue.add({
+              itemId: id,
+              type: 'move',
+              payload: { newStatus },
+            });
+          } else {
+            console.error(`Error moving item ${id}:`, error);
+            // Error de servidor: revertir el cambio
+            set((state) => ({
+              items: state.items.map((item) =>
+                item.id === id
+                  ? { ...item, status: oldStatus, updatedAt: new Date() }
+                  : item
+              ),
+            }));
+          }
         } finally {
           // Quitar de la lista de moviendo - SIEMPRE, incluso si hay error
           set((state) => ({

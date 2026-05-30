@@ -9,6 +9,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/mock"
 import { ErrorLogViewer } from "@/components/error-log-viewer"
 import { ErrorLoggerInit } from "@/components/error-logger-init"
 import { AuthErrorHandler } from "@/components/auth-error-handler"
+import { NetworkStatusIndicator } from "@/components/network-status-indicator"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -82,27 +83,16 @@ export default function RootLayout({
   return (
     <html lang="es" className="dark" suppressHydrationWarning>
       <head>
-        {/* oauth-handler eliminado para evitar 404 y recargas */}
-        {/* Script para desregistrar service workers antes de que React se cargue */}
+        {/* Registrar el Service Worker para soporte offline */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                  for(var i = 0; i < registrations.length; i++) {
-                    registrations[i].unregister();
-                  }
-                });
-                // También limpiar caches
-                if ('caches' in window) {
-                  caches.keys().then(function(cacheNames) {
-                    return Promise.all(
-                      cacheNames.map(function(cacheName) {
-                        return caches.delete(cacheName);
-                      })
-                    );
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                    console.warn('SW registration failed:', err);
                   });
-                }
+                });
               }
             `,
           }}
@@ -116,6 +106,7 @@ export default function RootLayout({
             {children}
             <Toaster />
             <PWAInstallPrompt />
+            <NetworkStatusIndicator />
             <ErrorLoggerInit />
             <AuthErrorHandler />
             {process.env.NODE_ENV === 'development' && <ErrorLogViewer />}

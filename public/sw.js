@@ -1,125 +1,133 @@
-const CACHE_NAME = 'shopping-list-v1';
-const urlsToCache = [
+const STATIC_CACHE = 'shopping-static-v2'
+const DATA_CACHE = 'shopping-data-v2'
+
+const STATIC_URLS = [
   '/',
   '/lists',
   '/manifest.json',
   '/icons/manifest-icon-192.png',
   '/icons/manifest-icon-512.png',
-  '/icons/apple-icon-180.png'
-];
+  '/icons/apple-icon-180.png',
+]
 
-// Instalar service worker
+// Rutas de API cuyos GET se cachean con estrategia "Network First, Fall Back to Cache"
+const CACHEABLE_API_ROUTES = [
+  '/api/shopping-items',
+  '/api/categories',
+]
+
+// ─── Install ───────────────────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Cache abierto');
-        return cache.addAll(urlsToCache);
-      })
-  );
-});
+    caches
+      .open(STATIC_CACHE)
+      .then((cache) => cache.addAll(STATIC_URLS))
+      .then(() => self.skipWaiting()) // activar inmediatamente
+  )
+})
 
-// Activar service worker
+// ─── Activate ──────────────────────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Eliminando cache antigua:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-});
+    caches
+      .keys()
+      .then((names) =>
+        Promise.all(
+          names
+            .filter((n) => n !== STATIC_CACHE && n !== DATA_CACHE)
+            .map((n) => caches.delete(n))
+        )
+      )
+      .then(() => self.clients.claim()) // tomar control de todas las pestañas
+  )
+})
 
-// URLs que NO deben ser cacheadas (APIs externas, Supabase, etc.)
-const shouldBypassCache = (url, request) => {
-  // Bypass para peticiones a Supabase (cualquier dominio de Supabase)
-  if (url.includes('supabase.co') || url.includes('supabase')) {
-    return true;
-  }
-  
-  // Bypass para peticiones a APIs
-  if (url.includes('/api/')) {
-    return true;
-  }
-  
-  // Bypass para peticiones POST, PUT, DELETE, PATCH (no deben cachearse)
-  if (request.method !== 'GET') {
-    return true;
-  }
-  
-  // Bypass para peticiones con credenciales
-  if (request.credentials === 'include' || request.credentials === 'same-origin') {
-    return true;
-  }
-  
-  // Bypass para peticiones con headers de autorización
-  if (request.headers && request.headers.get('authorization')) {
-    return true;
-  }
-  
-  return false;
-};
-
-// Interceptar requests
+// ─── Fetch ─────────────────────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
-  const url = event.request.url;
-  const request = event.request;
-  
-  // Si es una petición que debe ser bypassed, hacer fetch directo sin cache
-  if (shouldBypassCache(url, request)) {
-    // NO usar event.respondWith para peticiones que deben ser bypassed
-    // Esto permite que la petición pase directamente sin interceptar
-    return;
+  const { request } = event
+  const url = new URL(request.url)
+
+  // Nunca interceptar peticiones a Supabase ni autenticación
+  if (url.hostname.includes('supabase') || url.pathname.includes('/auth/')) {
+    return
   }
-  
-  // Solo cachear peticiones GET para recursos estáticos
+
+  // Nunca cachear mutaciones (POST, PUT, PATCH, DELETE)
   if (request.method !== 'GET') {
-    event.respondWith(fetch(request));
-    return;
+    return
   }
-  
-  event.respondWith(
-    caches.match(request)
-      .then((cachedResponse) => {
-        // Devolver desde cache si está disponible
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        
-        // Si no está en cache, hacer fetch normal
-        return fetch(request)
-          .then((response) => {
-            // Solo cachear respuestas exitosas y que sean del mismo origen
-            if (response.status === 200 && response.type === 'basic') {
-              const responseToCache = response.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                // Solo cachear recursos estáticos (HTML, CSS, JS, imágenes)
-                const contentType = response.headers.get('content-type');
-                if (contentType && (
-                  contentType.includes('text/html') ||
-                  contentType.includes('text/css') ||
-                  contentType.includes('application/javascript') ||
-                  contentType.includes('image/')
-                )) {
-                  cache.put(request, responseToCache);
-                }
-              });
-            }
-            return response;
-          })
-          .catch((error) => {
-            console.warn('Error en fetch:', error);
-            // Si es una petición de navegación y falla, intentar devolver página offline
-            if (request.mode === 'navigate') {
-              return caches.match('/');
-            }
-            throw error;
-          });
-      })
-  );
-});
+
+  // ── Estrategia: Network First, Fall Back to Cache para APIs de datos ────
+  const isCacheableApi = CACHEABLE_API_ROUTES.some((route) =>
+    url.pathname.startsWith(route)
+  )
+
+  if (isCacheableApi) {
+    event.respondWith(networkFirstDataStrategy(request))
+    return
+  }
+
+  // ── Estrategia: Cache First para assets estáticos ───────────────────────
+  event.respondWith(cacheFirstStaticStrategy(request))
+})
+
+/**
+ * Network First: intenta la red y cachea la respuesta.
+ * Si no hay red, devuelve la caché. Si tampoco hay caché,
+ * devuelve un JSON de error indicando modo offline.
+ */
+async function networkFirstDataStrategy(request) {
+  try {
+    const networkResponse = await fetch(request.clone())
+    if (networkResponse.ok) {
+      const cache = await caches.open(DATA_CACHE)
+      cache.put(request, networkResponse.clone())
+    }
+    return networkResponse
+  } catch {
+    const cached = await caches.match(request)
+    if (cached) return cached
+
+    return new Response(
+      JSON.stringify({ error: 'Sin conexión', offline: true, data: [] }),
+      {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    )
+  }
+}
+
+/**
+ * Cache First: sirve desde caché si está disponible.
+ * Si no hay caché, va a la red y cachea el resultado.
+ * Si tampoco hay red y es navegación, devuelve la página principal.
+ */
+async function cacheFirstStaticStrategy(request) {
+  const cached = await caches.match(request)
+  if (cached) return cached
+
+  try {
+    const networkResponse = await fetch(request)
+    if (networkResponse.status === 200 && networkResponse.type === 'basic') {
+      const contentType = networkResponse.headers.get('content-type') || ''
+      const isCacheable =
+        contentType.includes('text/html') ||
+        contentType.includes('text/css') ||
+        contentType.includes('application/javascript') ||
+        contentType.includes('image/')
+
+      if (isCacheable) {
+        const cache = await caches.open(STATIC_CACHE)
+        cache.put(request, networkResponse.clone())
+      }
+    }
+    return networkResponse
+  } catch {
+    if (request.mode === 'navigate') {
+      const root = await caches.match('/')
+      if (root) return root
+    }
+    throw new Error('Network error and no cache available')
+  }
+}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -8,12 +8,12 @@ import { CategoryModal } from '@/components/modals/category-modal'
 import { FloatingActionButton } from '@/components/atoms'
 import { getIconEmoji } from '@/lib/constants/categories'
 import { Category, CreateCategoryData, UpdateCategoryData } from '@/lib/types/category'
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  EyeOff, 
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  EyeOff,
   Loader2,
   ShoppingCart,
   AlertTriangle
@@ -29,45 +29,24 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { LoadingSpinner } from '@/components/loading-spinner'
-import { queuedFetch } from '@/lib/utils/request-queue'
-import { getCachedAuthHeaders } from '@/lib/utils/auth-cache'
+import { useCategories } from '@/hooks/use-categories'
 
 export function CategoryManagement() {
-  const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const {
+    categories,
+    loading,
+    error,
+    refetch,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+    toggleCategoryStatus,
+    isSubmitting,
+  } = useCategories()
+
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const fetchCategories = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      
-      const headers = await getCachedAuthHeaders().catch(() => ({}))
-      const response = await queuedFetch('/api/categories', {
-        method: 'GET',
-        headers,
-      }, 1) // Prioridad alta
-      
-      if (!response.ok) {
-        throw new Error('Error al cargar las categorías')
-      }
-      
-      const data = await response.json()
-      setCategories(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchCategories()
-  }, [])
 
   const handleOpenCreateModal = () => {
     setEditingCategory(null)
@@ -86,116 +65,18 @@ export function CategoryManagement() {
 
   const handleSaveCategory = async (data: CreateCategoryData) => {
     if (editingCategory) {
-      await handleUpdateCategory(data as UpdateCategoryData)
+      await updateCategory(editingCategory.id, data as UpdateCategoryData)
     } else {
-      await handleCreateCategory(data)
+      await createCategory(data)
     }
-  }
-
-  const handleCreateCategory = async (data: CreateCategoryData) => {
-    try {
-      setIsSubmitting(true)
-      
-      const headers = await getCachedAuthHeaders()
-      const response = await queuedFetch('/api/categories', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(data),
-      }, 0)
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Error al crear la categoría')
-      }
-
-      const newCategory = await response.json()
-      setCategories(prev => [...prev, newCategory])
-      setIsModalOpen(false)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear la categoría')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const handleUpdateCategory = async (data: UpdateCategoryData) => {
-    if (!editingCategory) return
-
-    try {
-      setIsSubmitting(true)
-      
-      const headers = await getCachedAuthHeaders()
-      const response = await queuedFetch(`/api/categories/${editingCategory.id}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify(data),
-      }, 0)
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Error al actualizar la categoría')
-      }
-
-      const updatedCategory = await response.json()
-      setCategories(prev => 
-        prev.map(cat => cat.id === editingCategory.id ? updatedCategory : cat)
-      )
-      setIsModalOpen(false)
-      setEditingCategory(null)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al actualizar la categoría')
-    } finally {
-      setIsSubmitting(false)
-    }
+    setIsModalOpen(false)
+    setEditingCategory(null)
   }
 
   const handleDeleteCategory = async () => {
     if (!deletingCategory) return
-
-    try {
-      setIsSubmitting(true)
-      
-      const headers = await getCachedAuthHeaders()
-      const response = await queuedFetch(`/api/categories/${deletingCategory.id}`, {
-        method: 'DELETE',
-        headers,
-      }, 0)
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Error al eliminar la categoría')
-      }
-
-      setCategories(prev => prev.filter(cat => cat.id !== deletingCategory.id))
-      setDeletingCategory(null)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al eliminar la categoría')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const toggleCategoryStatus = async (category: Category) => {
-    try {
-      const headers = await getCachedAuthHeaders()
-      const response = await queuedFetch(`/api/categories/${category.id}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ isActive: !category.isActive }),
-      }, 0)
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Error al actualizar la categoría')
-      }
-
-      const updatedCategory = await response.json()
-      setCategories(prev => 
-        prev.map(cat => cat.id === category.id ? updatedCategory : cat)
-      )
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al actualizar la categoría')
-    }
+    await deleteCategory(deletingCategory.id)
+    setDeletingCategory(null)
   }
 
   if (loading) {
@@ -208,7 +89,7 @@ export function CategoryManagement() {
         <AlertTriangle className="w-16 h-16 text-destructive mx-auto mb-6" />
         <h3 className="text-xl font-semibold text-foreground mb-2">Error al cargar categorías</h3>
         <p className="text-destructive mb-6 text-lg">{error}</p>
-        <Button onClick={fetchCategories} size="lg" className="bg-primary hover:bg-primary/90">
+        <Button onClick={refetch} size="lg" className="bg-primary hover:bg-primary/90">
           Reintentar
         </Button>
       </div>
@@ -217,8 +98,6 @@ export function CategoryManagement() {
 
   return (
     <div className="space-y-6">
-      
-
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {categories.map((category) => (
           <div key={category.id}>
@@ -260,7 +139,7 @@ export function CategoryManagement() {
                       {category.slug}
                     </Badge>
                   </div>
-                  
+
                   {category.color && (
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-medium text-foreground">Color:</span>
@@ -294,8 +173,8 @@ export function CategoryManagement() {
                       size="sm"
                       onClick={() => toggleCategoryStatus(category)}
                       className={`font-medium ${
-                        category.isActive 
-                          ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' 
+                        category.isActive
+                          ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground'
                           : 'bg-primary hover:bg-primary/90 text-primary-foreground'
                       }`}
                     >
@@ -356,7 +235,6 @@ export function CategoryManagement() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Modal para crear/editar categorías */}
       <CategoryModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -365,7 +243,6 @@ export function CategoryManagement() {
         isLoading={isSubmitting}
       />
 
-      {/* Botón flotante para nueva categoría */}
       <FloatingActionButton
         onClick={handleOpenCreateModal}
         size="md"

@@ -10,6 +10,7 @@ import { ErrorLogViewer } from "@/components/error-log-viewer"
 import { ErrorLoggerInit } from "@/components/error-logger-init"
 import { AuthErrorHandler } from "@/components/auth-error-handler"
 import { NetworkStatusIndicator } from "@/components/network-status-indicator"
+import { QueryProvider } from "@/components/query-provider"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -101,6 +102,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <QueryProvider>
         <ThemeProvider>
           <AuthProvider>
             {children}
@@ -112,6 +114,7 @@ export default function RootLayout({
             {process.env.NODE_ENV === 'development' && <ErrorLogViewer />}
           </AuthProvider>
         </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   )

@@ -1,30 +1,52 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+
+// Tiempo mínimo offline antes de mostrar el indicador.
+// Evita falsos positivos de navigator.onLine en Android/PWA que reportan
+// false brevemente aunque haya señal 4G+.
+const OFFLINE_DEBOUNCE_MS = 3000
 
 /**
  * Detecta si el navegador tiene conexión a internet.
- * Escucha los eventos `online` y `offline` del navegador.
- * Retorna `true` cuando hay conexión, `false` cuando no.
+ * Usa un debounce de 3s antes de declarar que no hay red, para evitar
+ * falsos positivos de navigator.onLine en dispositivos Android/PWA.
  */
 export function useNetworkStatus(): boolean {
-  const [isOnline, setIsOnline] = useState<boolean>(
-    typeof navigator !== 'undefined' ? navigator.onLine : true
-  )
+  // Comenzar siempre como "online" para no mostrar el badge en el arranque
+  const [isOnline, setIsOnline] = useState(true)
+  const offlineTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true)
-    const handleOffline = () => setIsOnline(false)
+    const markOnline = () => {
+      if (offlineTimerRef.current) {
+        clearTimeout(offlineTimerRef.current)
+        offlineTimerRef.current = null
+      }
+      setIsOnline(true)
+    }
 
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
+    const markOffline = () => {
+      // Esperar antes de declarar offline (evita falsos positivos)
+      if (offlineTimerRef.current) return
+      offlineTimerRef.current = setTimeout(() => {
+        offlineTimerRef.current = null
+        setIsOnline(false)
+      }, OFFLINE_DEBOUNCE_MS)
+    }
 
-    // Sincronizar estado inicial por si el componente montó offline
-    setIsOnline(navigator.onLine)
+    window.addEventListener('online', markOnline)
+    window.addEventListener('offline', markOffline)
+
+    // Verificar el estado inicial con debounce (no al instante)
+    if (!navigator.onLine) {
+      markOffline()
+    }
 
     return () => {
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
+      window.removeEventListener('online', markOnline)
+      window.removeEventListener('offline', markOffline)
+      if (offlineTimerRef.current) clearTimeout(offlineTimerRef.current)
     }
   }, [])
 

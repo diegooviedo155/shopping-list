@@ -150,14 +150,14 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
           }
         } catch (error) {
           console.error("Store - Error checking session:", error);
-          set({
-            items: [],
-            categories: [],
-            hasInitialized: false,
-            lastFetch: null,
-            error: null,
-            loading: false,
-          });
+          if (isNetworkError(error)) {
+            // Error de red: no resetear hasInitialized — eso causaría un loop
+            // infinito de re-inicialización. La app sigue con datos en caché.
+            set({ loading: false, isRefreshing: false });
+          } else {
+            // Error de auth real: limpiar estado
+            set({ items: [], categories: [], hasInitialized: false, lastFetch: null, error: null, loading: false });
+          }
           return;
         }
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState, useEffect, useRef, useCallback } from "react"
-import { Loader2, ShoppingCart, Clock, X } from "lucide-react"
+import { Loader2, ShoppingCart, Clock, X, ArrowDownUp } from "lucide-react"
 import { ITEM_STATUS } from "@/lib/constants/item-status"
 import { getCategoryColor, getIconEmoji, categorySlugToDatabaseType } from "@/lib/constants/categories"
 import { Checkbox } from "./ui/checkbox"
@@ -43,7 +43,21 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
   
   // Obtener estadísticas de la categoría con búsqueda
   const categoryStats = getCategoryStats(categorySlugToDatabaseType(category), searchQuery)
-  const items = categoryStats.items
+  const baseItems = categoryStats.items
+
+  // Orden manual: los tildados van al fondo cuando el usuario aprieta el botón
+  const [manualSortActive, setManualSortActive] = useState(false)
+
+  // Aplicar orden manual si está activo: tildados al fondo, resto en orden original
+  const items = useMemo(() => {
+    if (!manualSortActive) return baseItems
+    return [...baseItems].sort((a, b) => {
+      const aCompleted = optimisticUpdates.hasOwnProperty(a.id) ? optimisticUpdates[a.id] : a.completed
+      const bCompleted = optimisticUpdates.hasOwnProperty(b.id) ? optimisticUpdates[b.id] : b.completed
+      if (aCompleted === bCompleted) return a.orderIndex - b.orderIndex
+      return aCompleted ? 1 : -1
+    })
+  }, [baseItems, manualSortActive, optimisticUpdates])
 
   // Función para obtener el estado combinado (real + optimista)
   // Debe estar definida antes de los callbacks que la usan
@@ -320,15 +334,25 @@ export function CategoryView({ category, onBack }: { category: string; onBack: (
       }
     >
       <LoadingOverlay isLoading={categoryStats.isLoading}>
-        {/* Buscador */}
-        <div className="mb-6">
+        {/* Buscador + botón de ordenar */}
+        <div className="mb-6 flex items-center gap-2">
           <SearchInput
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onClear={clearSearch}
             placeholder={`Buscar en ${categoryName}...`}
-            className="w-full"
+            className="flex-1"
           />
+          <Button
+            variant={manualSortActive ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setManualSortActive((v) => !v)}
+            title={manualSortActive ? 'Volver al orden original' : 'Mover tildados al fondo'}
+            className="shrink-0 gap-1.5"
+          >
+            <ArrowDownUp className="w-4 h-4" />
+            {manualSortActive ? 'Activo' : 'Ordenar'}
+          </Button>
         </div>
 
         {/* Renderizar siempre la lista para evitar diferencias de hidratación */}

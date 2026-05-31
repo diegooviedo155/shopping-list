@@ -220,13 +220,8 @@ export function useUnifiedCategoryView() {
       )
     }
     
-    // Ordenar: primero no completados, luego completados
-    categoryItems = categoryItems.sort((a, b) => {
-      if (a.completed === b.completed) {
-        return a.orderIndex - b.orderIndex
-      }
-      return a.completed ? 1 : -1
-    })
+    // Mantener el orden original (por orderIndex) sin reordenar al tildar
+    categoryItems = categoryItems.sort((a, b) => a.orderIndex - b.orderIndex)
     
     const completedCount = categoryItems.filter(item => item.completed).length
     const totalCount = categoryItems.length

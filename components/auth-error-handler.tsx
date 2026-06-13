@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useUnifiedShoppingStore } from '@/lib/store/unified-shopping-store'
 import { useToast } from '@/hooks/use-toast'
+import { useNetworkStatus } from '@/hooks/use-network-status'
 
 /**
  * Componente que detecta errores de autenticación y redirige al login
@@ -15,13 +16,14 @@ export function AuthErrorHandler() {
   const error = useUnifiedShoppingStore((state) => state.error)
   const clearError = useUnifiedShoppingStore((state) => state.clearError)
   const { showError } = useToast()
+  const isOnline = useNetworkStatus()
   const redirectingRef = useRef(false)
 
   useEffect(() => {
     if (!error || redirectingRef.current) return
 
     // Detectar errores de autenticación
-    const isAuthError = 
+    const isAuthError =
       error.includes('Sesión expirada') ||
       error.includes('Usuario no autenticado') ||
       error.includes('401') ||
@@ -29,7 +31,9 @@ export function AuthErrorHandler() {
       error.includes('autenticación') ||
       error.includes('No se pudo obtener la sesión')
 
-    if (isAuthError && pathname !== '/login' && pathname !== '/register') {
+    // Si está offline, no redirigir: el error puede ser porque el token
+    // no pudo refrescarse sin internet. El usuario podría perder su lista.
+    if (isAuthError && pathname !== '/login' && pathname !== '/register' && isOnline) {
       // Marcar que ya estamos redirigiendo para evitar múltiples redirecciones
       redirectingRef.current = true
 

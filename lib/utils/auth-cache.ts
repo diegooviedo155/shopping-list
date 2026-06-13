@@ -88,6 +88,11 @@ export async function getCachedAuthHeaders(): Promise<Record<string, string>> {
   const session = await authCache.getSession();
 
   if (!session) {
+    // Si no hay sesión y estamos offline, es un error de red (no de auth).
+    // Así el store lo encola en lugar de forzar un logout.
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      throw new TypeError('Failed to fetch - offline, no session available');
+    }
     throw new Error('Usuario no autenticado');
   }
 

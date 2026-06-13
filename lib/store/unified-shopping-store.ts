@@ -138,6 +138,12 @@ export const useUnifiedShoppingStore = create<UnifiedShoppingState>()(
           } = await supabase.auth.getSession();
 
           if (!session || !session.user) {
+            // Si estamos offline, el token pudo no haberse podido refrescar.
+            // Conservar los items del caché — el usuario los necesita en el supermercado.
+            if (typeof navigator !== 'undefined' && !navigator.onLine) {
+              set({ loading: false, isRefreshing: false });
+              return;
+            }
             set({
               items: [],
               categories: [],

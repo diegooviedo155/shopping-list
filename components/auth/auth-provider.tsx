@@ -69,19 +69,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (error) {
           console.warn('Error getting session:', error)
-          // Limpiar tokens inválidos del localStorage
-          if (typeof window !== 'undefined') {
-            try {
-              const keys = Object.keys(localStorage)
-              keys.forEach(key => {
-                if (key.includes('supabase') || key.includes('auth')) {
-                  localStorage.removeItem(key)
-                }
-              })
-            } catch (e) {
-              console.warn('Error clearing localStorage:', e)
-            }
-          }
           setSession(null)
           setUser(null)
           setIsLoading(false)
@@ -95,22 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await fetchProfile(session.user.id)
         }
       } catch (error) {
-        // Si hay timeout o cualquier otro error, continuar sin sesión
+        // Timeout u otro error (puede ser falla de red al intentar refrescar el token)
         if (!isMounted) return
         console.warn('Session check failed:', error instanceof Error ? error.message : 'Unknown error')
-        // Limpiar tokens inválidos
-        if (typeof window !== 'undefined') {
-          try {
-            const keys = Object.keys(localStorage)
-            keys.forEach(key => {
-              if (key.includes('supabase') || key.includes('auth')) {
-                localStorage.removeItem(key)
-              }
-            })
-          } catch (e) {
-            // Ignorar errores al limpiar
-          }
-        }
+        // No borrar tokens — puede ser un error temporal de red.
+        // Supabase los usará para reintentar el refresh cuando haya conexión.
         setSession(null)
         setUser(null)
       } finally {

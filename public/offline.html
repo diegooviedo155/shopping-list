@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sin conexión — Lo Que Falta</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #09090b;
+      color: #fafafa;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      gap: 2rem;
+      text-align: center;
+    }
+
+    .logo {
+      width: 80px;
+      height: 80px;
+      background: #fff;
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo img { width: 80px; height: 80px; object-fit: contain; }
+
+    .icon {
+      width: 64px;
+      height: 64px;
+      background: #27272a;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+    p {
+      color: #a1a1aa;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      max-width: 280px;
+    }
+
+    .summary {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      font-size: 0.875rem;
+      color: #a1a1aa;
+      min-width: 220px;
+    }
+    .summary strong { color: #fafafa; display: block; font-size: 1.5rem; margin-bottom: 2px; }
+
+    button {
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover { background: #2563eb; }
+    button:active { background: #1d4ed8; }
+
+    .hint {
+      font-size: 0.78rem;
+      color: #52525b;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="logo">
+    <img src="/logo.png" alt="Lo Que Falta" onerror="this.style.display='none'" />
+  </div>
+
+  <div>
+    <h1>Sin conexión</h1>
+    <p>Tus datos están guardados en el dispositivo. Volvé a abrir la app cuando tengas internet y se sincronizará todo automáticamente.</p>
+  </div>
+
+  <div class="summary" id="summary" style="display:none">
+    <strong id="item-count">—</strong>
+    productos en tu lista
+  </div>
+
+  <button onclick="location.reload()">Reintentar</button>
+
+  <p class="hint">Si acabás de abrir la app por primera vez, necesitás internet para cargarla.</p>
+
+  <script>
+    // Mostrar cuántos ítems hay en localStorage (del store de Zustand)
+    try {
+      const raw = localStorage.getItem('unified-shopping-store')
+      if (raw) {
+        const store = JSON.parse(raw)
+        const items = store?.state?.items
+        if (Array.isArray(items) && items.length > 0) {
+          document.getElementById('item-count').textContent = items.length
+          document.getElementById('summary').style.display = 'block'
+        }
+      }
+    } catch (e) {}
+
+    // Auto-reload cuando vuelve la conexión
+    window.addEventListener('online', () => location.reload())
+  </script>
+</body>
+</html>

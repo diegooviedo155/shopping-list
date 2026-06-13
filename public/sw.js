@@ -1,13 +1,15 @@
-const STATIC_CACHE = 'shopping-static-v2'
-const DATA_CACHE = 'shopping-data-v2'
+const STATIC_CACHE = 'shopping-static-v3'
+const DATA_CACHE = 'shopping-data-v3'
 
 const STATIC_URLS = [
   '/',
   '/lists',
+  '/offline.html',
   '/manifest.json',
   '/icons/manifest-icon-192.png',
   '/icons/manifest-icon-512.png',
   '/icons/apple-icon-180.png',
+  '/logo.png',
 ]
 
 // Rutas de API cuyos GET se cachean con estrategia "Network First, Fall Back to Cache"
@@ -125,9 +127,15 @@ async function cacheFirstStaticStrategy(request) {
     return networkResponse
   } catch {
     if (request.mode === 'navigate') {
+      // Intentar la página cacheada primero (app shell completa)
       const root = await caches.match('/')
       if (root) return root
+      // Fallback: página offline propia en lugar del error genérico de Chrome
+      const offline = await caches.match('/offline.html')
+      if (offline) return offline
     }
-    throw new Error('Network error and no cache available')
+    // Para assets (JS/CSS/imagen) que fallan offline, devolver respuesta vacía
+    // en lugar de propagar el error (evita que Chrome muestre su página de error)
+    return new Response('', { status: 503, statusText: 'Service Unavailable' })
   }
 }
